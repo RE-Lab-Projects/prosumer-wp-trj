@@ -10,7 +10,7 @@ def getregion(plz):
     -------
     weatherID (str with climate zone)
     """
-    geolocator=Nominatim(user_agent="Hauke")
+    geolocator=Nominatim(user_agent="Hauke", timeout=10)
     location=geolocator.geocode(str(plz)+ ', Germany')
     # read weather zones
     wzones = pd.read_csv("T_zones_Ger_final.csv",
