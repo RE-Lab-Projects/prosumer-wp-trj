@@ -1,0 +1,7 @@
+pandas
+hplib
+plotly
+dash
+geopy
+scipy
+ipykernel
