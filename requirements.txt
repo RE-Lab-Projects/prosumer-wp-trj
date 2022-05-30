@@ -4,4 +4,4 @@ plotly
 dash
 geopy
 scipy
-ipykernel
+tabulate
