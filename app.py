@@ -7,21 +7,7 @@ from PLZtoWeatherRegion import getregion
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
-app = Dash(__name__, external_stylesheets=external_stylesheets)
-
-#app.config.update({
-#    'routes_pathname_prefix': "PVSYM22/",
-#    'requests_pathname_prefix':"PVSYM22/"
-#})
-
-app.config.supress_callback_exceptions = True
-app.config.update({
-    # remove the default of '/'
-    'routes_pathname_prefix': '',
-
-    # remove the default of '/'
-    'requests_pathname_prefix': ''
-})
+app = Dash(__name__, external_stylesheets=external_stylesheets, url_base_pathname='/PVSYM22/' )
 
 server = app.server
 
