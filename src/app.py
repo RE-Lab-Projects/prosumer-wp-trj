@@ -9,7 +9,7 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = Dash(__name__, external_stylesheets=external_stylesheets)
 
-df = pd.read_pickle('results_summary.pkl')
+df = pd.read_pickle('results_summary_new.pkl')
 heatpumps=hpl.load_database()
 heatpumps=heatpumps[['Manufacturer', 'Model', 'Date', 'SPL indoor [dBA]', 'SPL outdoor [dBA]', 'PSB [W]', 'P_th_h_ref [W]','MAPE_P_el', 'MAPE_COP', 'MAPE_P_th',
        'P_th_c_ref [W]', 'MAPE_P_el_cooling', 'MAPE_EER', 'MAPE_Pdc']]
@@ -100,21 +100,24 @@ def update_graph(standort, gebäudetyp,pv,strombezugskosten, einspeisevergütung
     dff.loc[dff['WP-Name']=='Generic','WP-Name']='Generic '+ dff.loc[dff['WP-Name']=='Generic','WP-Kategorie'] +' '+ dff.loc[dff['WP-Name']=='Generic','WP-Typ']
     
     dff=dff.sort_values('bilanzielle Energiekosten')
-    fig=px.bar(y=dff['WP-Name'],                    
-                    x=dff['bilanzielle Energiekosten'],
-                    hover_name=dff['WP-Name'],
-                    color=dff['WP-Kategorie'],
-                    text=dff['WP-Name'],
-                    labels=dict(x='Bilanzielle Energiekosten [€/a]',y='Wp-Models',color='Wp-Kategorie')
+    fig=px.bar(data_frame=dff,
+                    y='WP-Name',                    
+                    x='bilanzielle Energiekosten',
+                    hover_name='WP-Name',
+                    hover_data=['WP-Hersteller'],
+                    color='WP-Kategorie',
+                    title='Strombezug abzüglich Einspeisevergütung eines EFH mit 10 kWp, 0 kWh Batteriespeicher',
+                    labels=dict(x='Bilanzielle Energiekosten [€/a]',y='WP-Models',color='WP-Kategorie'),
+                    height=600
             ).update_yaxes(categoryorder='total ascending')
     fig.update_layout(legend=dict(
     orientation="h",
     yanchor="bottom",
-    y=1.1,
+    y=1.001,
     xanchor="left"
     ))
     fig.update_xaxes(range=[dff['bilanzielle Energiekosten'].min()*0.8,dff['bilanzielle Energiekosten'].max()*1.05])
-    fig.update_layout(margin={'l': 40, 'b': 40, 't': 20, 'r': 0},hovermode='closest')
+    fig.update_layout(margin={'l': 0, 'b': 40, 't': 20, 'r': 0},hovermode='closest')
     return fig
 
 @app.callback(
@@ -178,5 +181,4 @@ def update_table(wp_name, Wp_name):
     return hp.to_markdown()
 
 if __name__ == '__main__':
-    app.run_server(debug=False)
-    
+    app.run_server()
