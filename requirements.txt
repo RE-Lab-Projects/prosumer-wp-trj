@@ -5,3 +5,4 @@ dash
 geopy
 scipy
 tabulate
+gunicorn
