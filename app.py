@@ -64,15 +64,15 @@ app.layout = html.Div([
     html.Div([
         dcc.Graph(
             id='crossfilter-indicator-scatter',
-            hoverData={'points': [{'curveNumber': 0,'x':'geregelt','hovertext': 'Generic'}]},
-            clickData={'points': [{'curveNumber': 0,'x':'geregelt','hovertext': 'Generic'}]}
+            hoverData={'points': [{'curveNumber': 0,'x':'geregelt','hovertext': 'Generic Luft/Wasser geregelt'}]},
+            clickData={'points': [{'curveNumber': 0,'x':'geregelt','hovertext': 'Generic Luft/Wasser geregelt'}]}
         )
     ], style={'width': '100%', 'display': 'inline-block', 'padding': '10 50'}),
     html.Div([
         dcc.Graph(
             id='graph2',
-            hoverData={'points': [{'curveNumber': 0,'x':'geregelt','hovertext': 'Generic'}]},
-            clickData={'points': [{'curveNumber': 0,'x':'geregelt','hovertext': 'Generic'}]}
+            hoverData={'points': [{'curveNumber': 0,'x':'geregelt','hovertext': 'Generic Luft/Wasser geregelt'}]},
+            clickData={'points': [{'curveNumber': 0,'x':'geregelt','hovertext': 'Generic Luft/Wasser geregelt'}]}
         )
     ]),
     html.Div([
@@ -108,18 +108,25 @@ def update_graph(standort, gebäudetyp,pv,strombezugskosten, einspeisevergütung
                     hover_name='WP-Name',
                     hover_data=['WP-Hersteller'],
                     color='WP-Kategorie',
-                    title='Strombezug abzüglich Einspeisevergütung eines EFH mit 10 kWp, 0 kWh Batteriespeicher',
-                    labels=dict(x='Bilanzielle Energiekosten [€/a]',y='WP-Models',color='WP-Kategorie'),
+                    #title='Strombezug abzüglich Einspeisevergütung eines EFH mit 10 kWp, 0 kWh Batteriespeicher',
+                    labels=dict(x='Bilanzielle Stromkosten [€/a]',y='WP-Models',color='WP-Kategorie'),
                     height=600
-            ).update_yaxes(categoryorder='total ascending')
+            ).update_yaxes(categoryorder='total descending')
     fig.update_layout(legend=dict(
     orientation="h",
     yanchor="bottom",
     y=1.001,
     xanchor="left"
     ))
-    fig.update_xaxes(range=[dff['bilanzielle Energiekosten'].min()*0.8,dff['bilanzielle Energiekosten'].max()*1.05])
-    fig.update_layout(margin={'l': 0, 'b': 40, 't': 20, 'r': 0},hovermode='closest')
+    fig.update_xaxes(range=[dff['bilanzielle Energiekosten'].min()*0.9,dff['bilanzielle Energiekosten'].max()*1.05])
+    fig.update_layout(xaxis_title='Bilanzielle Stromkosten [€/a]',
+                yaxis_title='WP-Model')
+    if fig['data'][0]['legendgroup']=='Sole/Wasser':
+        fig['data'][0]['marker']['color']='#636efa'
+        fig['data'][1]['marker']['color']='#EF553B'
+    else:
+        fig['data'][1]['marker']['color']='#636efa'
+        fig['data'][0]['marker']['color']='#EF553B'
     return fig
 
 @app.callback(
@@ -133,29 +140,25 @@ def update_graph(standort, gebäudetyp,pv,strombezugskosten, einspeisevergütung
     )
 def update_graph2(wp_name,standort, gebäudetyp, pv, strombezugskosten, einspeisevergütung):
     wpname=wp_name['points'][0]['hovertext']
-    dff = df[(df['Standort'] == region.index(standort)+1)&(df['Gebäudetyp']==gebäudetyp)&(df['PV-Ausrichtung']==pv)&(df['WP-Name']==wpname)]
+
+    if wp_name['points'][0]['hovertext'].startswith('Generic'):
+        if wp_name['points'][0]['hovertext'].endswith('Luft/Wasser einstufig'):
+            dff = df[(df['Standort'] == region.index(standort)+1)&(df['Gebäudetyp']==gebäudetyp)&(df['PV-Ausrichtung']==pv)&(df['WP-Name']=='Generic')&(df['WP-Kategorie']=='Luft/Wasser')&(df['WP-Typ']=='einstufig')]
+        elif wp_name['points'][0]['hovertext'].endswith('Luft/Wasser geregelt'):
+            dff = df[(df['Standort'] == region.index(standort)+1)&(df['Gebäudetyp']==gebäudetyp)&(df['PV-Ausrichtung']==pv)&(df['WP-Name']=='Generic')&(df['WP-Kategorie']=='Luft/Wasser')&(df['WP-Typ']=='geregelt')]
+        elif wp_name['points'][0]['hovertext'].endswith('einstufig'):
+            dff = df[(df['Standort'] == region.index(standort)+1)&(df['Gebäudetyp']==gebäudetyp)&(df['PV-Ausrichtung']==pv)&(df['WP-Name']=='Generic')&(df['WP-Kategorie']!='Luft/Wasser')&(df['WP-Typ']=='einstufig')]
+        elif wp_name['points'][0]['hovertext'].endswith('geregelt'):
+            dff = df[(df['Standort'] == region.index(standort)+1)&(df['Gebäudetyp']==gebäudetyp)&(df['PV-Ausrichtung']==pv)&(df['WP-Name']=='Generic')&(df['WP-Kategorie']!='Luft/Wasser')&(df['WP-Typ']=='geregelt')]
+    else:
+        dff = df[(df['Standort'] == region.index(standort)+1)&(df['Gebäudetyp']==gebäudetyp)&(df['PV-Ausrichtung']==pv)&(df['WP-Name']==wpname)]
+    
     dff['Kosten [1/Jahr]'] = dff['Netzbezug [kWh]'].values * strombezugskosten/100 - dff['Netzeinspeisung [kWh]'].values * einspeisevergütung/100
 
-    if wpname=='Generic':
-        if wp_name['points'][0]['curveNumber']==0:
-            if wp_name['points'][0]['x']=='geregelt':
-                dff=dff.loc[(dff['WP-Kategorie']=='Luft/Wasser')&(dff['WP-Typ']=='geregelt')]
-            else:
-                dff=dff.loc[(dff['WP-Kategorie']=='Luft/Wasser')&(dff['WP-Typ']!='geregelt')]
-        else:
-            if wp_name['points'][0]['x']=='geregelt':
-                dff=dff.loc[(dff['WP-Kategorie']!='Luft/Wasser')&(dff['WP-Typ']=='geregelt')]
-            else:
-                dff=dff.loc[(dff['WP-Kategorie']!='Luft/Wasser')&(dff['WP-Typ']!='geregelt')]
-    fig = go.Figure()
-    for year in [2015, 2045]:
-        for typ in dff['Typ'].unique():
-            fig.add_trace(go.Scatter(x = dff.loc[(dff['Jahr']==year)&(dff['Typ']==typ)]['Batteriespeicher [kWh]'], y=dff.loc[(dff['Jahr']==year)&(dff['Typ']==typ)]['Kosten [1/Jahr]'], name=str(year)+' ' + typ))
-    # Edit the layout
-    fig.update_layout(title='Laufende Kosten für ein Jahr Wärme und Strom mit '+wpname+' Wärmepumpe',
-                    xaxis_title='Batteriespeicher [kWh]',
-                    yaxis_title='Betriebskosten [€/Jahr]')
-    fig.update_layout(yaxis=dict(range=[dff.sort_values('Kosten [1/Jahr]')['Kosten [1/Jahr]'].head(1),dff.sort_values('Kosten [1/Jahr]')['Kosten [1/Jahr]'].tail(1)]))
+    fig = px.box(dff, x='Batteriespeicher [kWh]',y='Kosten [1/Jahr]', points='all', hover_data=['Typ', 'Jahr'])
+    fig.update_layout(title='Bilanzielle Stromkosten mit '+wpname+' Wärmepumpe über Batteriegröße in verschiedenen Wetterjahren',
+                xaxis_title='Batteriespeicher [kWh]',
+                yaxis_title='Bilanzielle Stromkosten [€/a]')
     return fig
 
 @app.callback(
@@ -171,13 +174,9 @@ def update_table(wp_name, Wp_name):
             samehp=samehp+i+' \n'
         samehp=samehp[:-2]
         samehp
-        hp['Other names']=samehp
-        hp=hp[['Manufacturer', 'Model','Other names', 'SPL indoor [dBA]', 'PSB [W]',
-            'MAPE_COP', 'P_th_c_ref [W]']].rename(columns={'SPL indoor [dBA]':'Geräuschpegel in dBA','PSB [W]': 'Standby Power in W', 'MAPE_COP': 'Durchschnittlicher qualitativer Fehler in %','P_th_c_ref [W]': 'Kühlen'})
-        if hp.loc[hp.index[0],'Kühlen']>0:
-            hp['Kühlen']='Ja'
-        else:
-            hp['Kühlen']='Nein'
+        hp['Modelnamen']=samehp
+        hp=hp[['Manufacturer','Modelnamen', 'SPL indoor [dBA]', 'PSB [W]',
+            'MAPE_COP']].rename(columns={'Manufacturer':'Hersteller','SPL indoor [dBA]':'Geräuschpegel in dBA','PSB [W]': 'Standby Leistung in W'})
     except:
         pass
     return hp.to_markdown()
