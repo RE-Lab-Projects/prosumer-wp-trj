@@ -21,7 +21,7 @@ app = Dash(__name__,
 server = app.server
 
 # Prepare data
-df = pd.read_pickle('results_summary_new.pkl')
+df = pd.read_pickle('results_summary.pkl')
 heatpumps=hpl.load_database()
 heatpumps=heatpumps[['Manufacturer', 'Model', 'Date', 'SPL indoor [dBA]', 'SPL outdoor [dBA]', 'PSB [W]', 'P_th_h_ref [W]','MAPE_P_el', 'MAPE_COP', 'MAPE_P_th',
        'P_th_c_ref [W]', 'MAPE_P_el_cooling', 'MAPE_EER', 'MAPE_Pdc']]
@@ -117,7 +117,7 @@ parameter1 = dbc.Card([
             html.Div("Gebäudetyp: "),
             dcc.Dropdown(
                 df['Gebäudetyp'].unique(),
-                'Neubau (150 Qm und 0.6 W/(K*Qm))',
+                'Neubau (35/28)',
                 id='sort2',
             ),
             html.Div("PV-Ausrichtung: "),
