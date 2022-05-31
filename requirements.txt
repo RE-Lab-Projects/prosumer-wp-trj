@@ -6,3 +6,4 @@ geopy
 scipy
 tabulate
 gunicorn
+dash-bootstrap-components
