@@ -170,7 +170,7 @@ parameter3 = dbc.Card([
                 id='crossfilter-jahr',
                 labelStyle={'display': 'inline-block', 'marginTop': '5px'}
             ),
-            dcc.Markdown("Zeilen: "),
+            dcc.Markdown("Reihen: "),
             dcc.Dropdown(
                 df.columns,
                 'WP-Kategorie',
@@ -448,12 +448,11 @@ def update_table(wp_name, Wp_name):
 def update_graph(xaxis_column_name, yaxis_column_name,
                 year, typ,facetcolumn,colour):
     
-    dfff = df.loc[(df['Jahr'] == 2015)&(df['Art des Jahres']=='a')]
-    print(dfff)
+    dfff = df.loc[(df['Jahr'] == year)&(df['Typ']==typ)]
     fig = px.scatter(x=dfff[xaxis_column_name],
-                    y=dfff['Art des Jahres'],
+                    y=dfff[yaxis_column_name],
                     hover_name=dfff['WP-Name'],
-                    facet_col=dfff[facetcolumn],
+                    facet_row=dfff[facetcolumn],
                     color=dfff[colour]
             )
 
@@ -462,7 +461,7 @@ def update_graph(xaxis_column_name, yaxis_column_name,
     fig.update_xaxes(title=xaxis_column_name)
 
     fig.update_yaxes(title=yaxis_column_name)
-    return xaxis_column_name
+    return fig
 
 @app.callback(
     Output("tab-content", "children"),
