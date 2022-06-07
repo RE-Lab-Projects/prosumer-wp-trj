@@ -80,6 +80,17 @@ Intro3 = dcc.Markdown('''
     > * MAPE = mittlerer prozentualer Fehler des Modells im Vergleich zu Messdaten
     >
 '''))
+Überschrift_Auswertung = dbc.Card(dcc.Markdown(
+'''
+    >
+    > **Graphische Darstellung der Simulationsergebnisse**
+    > 
+    > Mit Auswahl der Parameter für die 
+    > * X-Achse
+    > * Y-Achse
+    > * Farbe
+    > * Darstellungsart
+'''))
 ###################################
 
 # Inhalte definieren ##############
@@ -144,6 +155,51 @@ parameter2 = dbc.Card([
             ),
             ],body=True)
 
+parameter3 = dbc.Card([
+            dcc.Markdown("X-Achse: "),
+            dcc.Dropdown(
+                df.columns,
+                'Standort',
+                id='crossfilter-xaxis-column',
+                
+            ),
+            dcc.Markdown("Wetterjahr: "),
+            dcc.RadioItems(
+                df['Jahr'].unique(),
+                2015,
+                id='crossfilter-jahr',
+                labelStyle={'display': 'inline-block', 'marginTop': '5px'}
+            ),
+            dcc.Markdown("Zeilen: "),
+            dcc.Dropdown(
+                df.columns,
+                'WP-Kategorie',
+                id='facet-column',
+            ),
+            ],body=True)
+
+parameter4=dbc.Card([
+            dcc.Markdown("Y-Achse: "),
+            dcc.Dropdown(
+                df.columns,
+                'JAZ',
+                id='crossfilter-yaxis-column',
+            ),
+            dcc.Markdown("Wetterverhältnisse: "),
+            dcc.RadioItems(
+                df['Typ'].unique(),
+                'durchschnittliches Jahr',
+                id='crossfilter-typ',
+                labelStyle={'display': 'inline-block', 'marginTop': '5px'}
+            ),
+            dcc.Markdown("Farbe: "),
+            dcc.Dropdown(
+                df.columns,
+                'Gebäudetyp',
+                id='colour',
+            ),
+            ],body=True)
+
 ergebnis1 = dbc.Card([
             dcc.Graph(
             id='crossfilter-indicator-scatter',
@@ -165,6 +221,12 @@ ergebnis3 = [
             id='wp-infos'
             ),
             ]
+
+ergebnis4 = dbc.Card([
+            dcc.Graph(
+            id='graph3',
+            ),
+            ])
 
 ergebnisse = dbc.Container(
                     [
@@ -214,6 +276,30 @@ ergebnisse = dbc.Container(
                     ],
                     fluid=True,
                     )
+auswertungsergebnisse=dbc.Container(
+                    [
+                    dbc.Row(
+                        [
+                        dbc.Col(Überschrift_Auswertung, md=12),
+                        ],
+                    align="center",
+                    ),
+                    dbc.Row(
+                        [
+                        dbc.Col(parameter3, md=6),
+                        dbc.Col(parameter4, md=6),
+                        ],
+                    align="center",
+                    ),
+                    dbc.Row(
+                        [
+                        dbc.Col(ergebnis4),
+                        ],
+                    align="center",
+                    ),  
+                    ],
+                    fluid=True,
+)
 ###################################
 
 # Layout ##########################
@@ -225,6 +311,7 @@ app.layout = dbc.Container(
             [
                 dbc.Tab(label="Info", tab_id="info"),
                 dbc.Tab(label="Ergebnisse", tab_id="ergebnisse"),
+                dbc.Tab(label="Auswertungsergebnisse", tab_id="auswertungsergebnisse")
             ],
             id="tabs",
             active_tab="info",
@@ -350,6 +437,34 @@ def update_table(wp_name, Wp_name):
     return hp.to_markdown()
 
 @app.callback(
+    Output('graph3', 'figure'),
+    Input('crossfilter-xaxis-column', 'value'),
+    Input('crossfilter-yaxis-column', 'value'),
+    Input('crossfilter-jahr', 'value'),
+    Input('crossfilter-typ', 'value'),
+    Input('facet-column', 'value'),
+    Input('colour', 'value'),
+    )
+def update_graph(xaxis_column_name, yaxis_column_name,
+                year, typ,facetcolumn,colour):
+    
+    dfff = df.loc[(df['Jahr'] == 2015)&(df['Art des Jahres']=='a')]
+    print(dfff)
+    fig = px.scatter(x=dfff[xaxis_column_name],
+                    y=dfff['Art des Jahres'],
+                    hover_name=dfff['WP-Name'],
+                    facet_col=dfff[facetcolumn],
+                    color=dfff[colour]
+            )
+
+    fig.update_traces(customdata=dfff['WP-Name'])
+
+    fig.update_xaxes(title=xaxis_column_name)
+
+    fig.update_yaxes(title=yaxis_column_name)
+    return xaxis_column_name
+
+@app.callback(
     Output("tab-content", "children"),
     [Input("tabs", "active_tab")],
 )
@@ -364,6 +479,8 @@ def render_tab_content(active_tab):
             return info
         elif active_tab == "ergebnisse":
             return ergebnisse
+        elif active_tab=="auswertungsergebnisse":
+            return auswertungsergebnisse
     return "No tab selected"
 #############################################
 
