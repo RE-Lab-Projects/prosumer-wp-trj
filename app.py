@@ -156,6 +156,14 @@ parameter2 = dbc.Card([
             ],body=True)
 
 parameter3 = dbc.Card([
+            dcc.Markdown("Wetterjahr: "),
+            dcc.Dropdown(
+                ['Boxplot', 'Scatterplot', 'Histogramm'],
+                'Scatterplot',
+                id='plottype')
+],body=True)
+
+parameter4 = dbc.Card([
             dcc.Markdown("X-Achse: "),
             dcc.Dropdown(
                 df.columns,
@@ -178,7 +186,7 @@ parameter3 = dbc.Card([
             ),
             ],body=True)
 
-parameter4=dbc.Card([
+parameter5=dbc.Card([
             dcc.Markdown("Y-Achse: "),
             dcc.Dropdown(
                 df.columns,
@@ -287,7 +295,13 @@ auswertungsergebnisse=dbc.Container(
                     dbc.Row(
                         [
                         dbc.Col(parameter3, md=6),
+                        ],
+                    align="center",
+                    ),
+                    dbc.Row(
+                        [
                         dbc.Col(parameter4, md=6),
+                        dbc.Col(parameter5, md=6),
                         ],
                     align="center",
                     ),
@@ -453,7 +467,10 @@ def update_graph(xaxis_column_name, yaxis_column_name,
                     y=dfff[yaxis_column_name],
                     hover_name=dfff['WP-Name'],
                     facet_row=dfff[facetcolumn],
-                    color=dfff[colour]
+                    facet_col_wrap=2,
+                    color=dfff[colour],
+                    height=300*len(dfff[facetcolumn].unique()),
+                    facet_row_spacing=0.14/len(dfff[facetcolumn].unique()), 
             )
 
     fig.update_traces(customdata=dfff['WP-Name'])
@@ -462,6 +479,7 @@ def update_graph(xaxis_column_name, yaxis_column_name,
 
     fig.update_yaxes(title=yaxis_column_name)
     return fig
+
 
 @app.callback(
     Output("tab-content", "children"),
