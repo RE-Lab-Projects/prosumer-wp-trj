@@ -158,7 +158,7 @@ parameter2 = dbc.Card([html.Div(
             ],body=True)
 
 parameter3 = dbc.Card([
-            dcc.Markdown("Wetterjahr: "),
+            dcc.Markdown("Darstellungsart: "),
             dcc.Dropdown(
                 ['Boxplot', 'Scatterplot', 'Histogramm'],
                 'Scatterplot',
@@ -174,16 +174,16 @@ parameter4 = dbc.Card([
                 
             ),
             dcc.Markdown("Wetterjahr: "),
-            dcc.RadioItems(
+            dcc.Checklist(
                 df['Jahr'].unique(),
-                2015,
+                [2015],
                 id='crossfilter-jahr',
-                labelStyle={'display': 'inline-block', 'marginTop': '5px'}
+                inline=True,
             ),
             dcc.Markdown("Reihen: "),
             dcc.Dropdown(
-                df.columns,
-                'WP-Kategorie',
+                df.select_dtypes(include=['object', 'int64' ]).columns,
+                'Gebäudetyp',
                 id='facet-column',
             ),
             ],body=True)
@@ -196,16 +196,16 @@ parameter5=dbc.Card([
                 id='crossfilter-yaxis-column',
             ),
             dcc.Markdown("Wetterverhältnisse: "),
-            dcc.RadioItems(
-                df['Typ'].unique(),
-                'durchschnittliches Jahr',
+            dcc.Checklist(
+                df['Art des Jahres'].unique(),
+                ['durchschnittliches Jahr'],
                 id='crossfilter-typ',
-                labelStyle={'display': 'inline-block', 'marginTop': '5px'}
+                inline=True,
             ),
             dcc.Markdown("Farbe: "),
             dcc.Dropdown(
-                df.columns,
-                'Gebäudetyp',
+                df.select_dtypes(include=['object', 'int64' ]).columns,
+                'WP-Kategorie',
                 id='colour',
             ),
             ],body=True)
@@ -335,7 +335,7 @@ def standorttoregion(standort):
     Input('einspeisevergütung', 'value'),
     )
 def update_graph(standort, gebäudetyp,pv,strombezugskosten, einspeisevergütung):
-    dff = df[(df['Standort'] == region.index(standort)+1)&(df['Gebäudetyp']==gebäudetyp)&(df['Jahr']==2015)&(df['Typ']=='durchschnittliches Jahr')&(df['Batteriespeicher [kWh]']==0)&(df['PV-Ausrichtung']==pv)]
+    dff = df[(df['Standort'] == region.index(standort)+1)&(df['Gebäudetyp']==gebäudetyp)&(df['Jahr']==2015)&(df['Art des Jahres']=='durchschnittliches Jahr')&(df['Batteriespeicher [kWh]']==0)&(df['PV-Ausrichtung']==pv)]
     dff['bilanzielle Energiekosten'] = dff['Netzbezug [kWh]'].values * strombezugskosten/100 - dff['Netzeinspeisung [kWh]'].values * einspeisevergütung/100
     dff.loc[dff['WP-Name']=='Generic','WP-Name']='Generic '+ dff.loc[dff['WP-Name']=='Generic','WP-Kategorie'] +' '+ dff.loc[dff['WP-Name']=='Generic','WP-Typ']
     
@@ -443,12 +443,28 @@ def update_table(wp_name, Wp_name):
     Input('crossfilter-typ', 'value'),
     Input('facet-column', 'value'),
     Input('colour', 'value'),
+    Input('plottype', "value"),
     )
 def update_graph(xaxis_column_name, yaxis_column_name,
-                year, typ,facetcolumn,colour):
-    
-    dfff = df.loc[(df['Jahr'] == year)&(df['Typ']==typ)]
-    fig = px.scatter(x=dfff[xaxis_column_name],
+                year, typ,facetcolumn,colour,plottype):
+    print(year)
+    dfff = pd.DataFrame()
+    for weathertyp in typ:
+        for jahr in year:
+            dfff=pd.concat([dfff,df.loc[(df['Jahr'] == jahr)&(df['Art des Jahres']==weathertyp)]])
+    print(dfff)
+    if plottype == 'Histogramm':
+        fig = px.histogram(x=dfff[xaxis_column_name],
+                    hover_name=dfff['WP-Name'],
+                    facet_row=dfff[facetcolumn],
+                    facet_col_wrap=2,
+                    color=dfff[colour],
+                    height=300*len(dfff[facetcolumn].unique()),
+                    facet_row_spacing=0.14/len(dfff[facetcolumn].unique()), 
+                    barmode="overlay",
+            )
+    elif plottype == 'Boxplot':
+        fig = px.box(x=dfff[xaxis_column_name],
                     y=dfff[yaxis_column_name],
                     hover_name=dfff['WP-Name'],
                     facet_row=dfff[facetcolumn],
@@ -457,14 +473,21 @@ def update_graph(xaxis_column_name, yaxis_column_name,
                     height=300*len(dfff[facetcolumn].unique()),
                     facet_row_spacing=0.14/len(dfff[facetcolumn].unique()), 
             )
-
+        fig.update_yaxes(title=yaxis_column_name)
+    elif plottype == 'Scatterplot':
+        fig = px.scatter(x=dfff[xaxis_column_name],
+                    y=dfff[yaxis_column_name],
+                    hover_name=dfff['WP-Name'],
+                    facet_row=dfff[facetcolumn],
+                    facet_col_wrap=2,
+                    color=dfff[colour],
+                    height=300*len(dfff[facetcolumn].unique()),
+                    facet_row_spacing=0.14/len(dfff[facetcolumn].unique()), 
+            )
+        fig.update_yaxes(title=yaxis_column_name)
     fig.update_traces(customdata=dfff['WP-Name'])
-
     fig.update_xaxes(title=xaxis_column_name)
-
-    fig.update_yaxes(title=yaxis_column_name)
     return fig
-
 
 @app.callback(
     Output("tab-content", "children"),
