@@ -66,17 +66,7 @@ Intro3 = dcc.Markdown('''
     > * MAPE = mittlerer prozentualer Fehler des Modells im Vergleich zu Messdaten
     >
 '''))
-Überschrift_Auswertung = dbc.Card(dcc.Markdown(
-'''
-    >
-    > **Graphische Darstellung der Simulationsergebnisse**
-    > 
-    > Mit Auswahl der Parameter für die 
-    > * X-Achse
-    > * Y-Achse
-    > * Farbe
-    > * Darstellungsart
-'''))
+
 ###################################
 
 # Inhalte definieren ##############
@@ -109,6 +99,7 @@ parameter1 = dbc.Card([
             html.Div("entspricht Wetterregion: "),
             dcc.Dropdown(
                 region,
+                'Nordostdeutsches Tiefland',
                 id='region',
             ),
             html.Div("Gebäudetyp: "),
@@ -157,58 +148,71 @@ parameter2 = dbc.Card([html.Div(
             ),
             ],body=True)
 
-parameter3 = dbc.Card([
-            dcc.Markdown("Darstellungsart: "),
+parameter3 = dbc.Card(dbc.CardBody(
+            [
+            html.H5("Darstellungsart", className="card-title"),
             dcc.Dropdown(
                 ['Boxplot', 'Scatterplot', 'Histogramm'],
                 'Scatterplot',
                 id='plottype')
-],body=True)
+            ]),body=True)
 
-parameter4 = dbc.Card([
-            dcc.Markdown("X-Achse: "),
+parameter4 = dbc.Card(dbc.CardBody(
+            [
+            html.H5("X-Achse", className="card-title"),
             dcc.Dropdown(
                 df.columns,
                 'Standort',
-                id='crossfilter-xaxis-column',
-                
+                id='crossfilter-xaxis-column', 
             ),
-            dcc.Markdown("Wetterjahr: "),
-            dcc.Checklist(
-                df['Jahr'].unique(),
-                [2015],
-                id='crossfilter-jahr',
-                inline=True,
-            ),
-            dcc.Markdown("Reihen: "),
-            dcc.Dropdown(
-                df.select_dtypes(include=['object', 'int64' ]).columns,
-                'Jahr',
-                id='facet-column',
-            ),
-            ],body=True)
+            ]),body=True)
 
-parameter5=dbc.Card([
-            dcc.Markdown("Y-Achse: "),
+parameter5 = dbc.Card(dbc.CardBody(
+            [
+            html.H5("Y-Achse", className="card-title"),
             dcc.Dropdown(
                 df.columns,
                 'JAZ',
                 id='crossfilter-yaxis-column',
             ),
-            dcc.Markdown("Wetterverhältnisse: "),
+            ]),body=True)
+
+parameter6 = dbc.Card(dbc.CardBody(
+            [
+            html.H5("Reihen", className="card-title"),
+            dcc.Dropdown(
+                df.select_dtypes(include=['object', 'int64' ]).columns,
+                'Jahr',
+                id='facet-column',
+            ),
+            ]),body=True)
+
+parameter7 = dbc.Card(dbc.CardBody(
+            [
+            html.H5("Farbe", className="card-title"),
+            dcc.Dropdown(
+                df.select_dtypes(include=['object', 'int64' ]).columns,
+                'WP-Kategorie',
+                id='colour',
+            ),
+            ]),body=True)
+
+parameter8 = dbc.Card(dbc.CardBody(
+            [
+            html.H5("Wetter", className="card-title"),
             dcc.Checklist(
                 df['Art des Jahres'].unique(),
                 ['durchschnittliches Jahr'],
                 id='crossfilter-typ',
                 inline=True,
             ),
-            dcc.Markdown("Farbe: "),
-            dcc.Dropdown(
-                df.select_dtypes(include=['object', 'int64' ]).columns,
-                'WP-Kategorie',
-                id='colour',
+            dcc.Checklist(
+                df['Jahr'].unique(),
+                [2015],
+                id='crossfilter-jahr',
+                inline=True,
             ),
-            ],body=True)
+            ]),body=True)
 
 ergebnis1 = dbc.Card(dbc.CardBody(
         [
@@ -279,28 +283,25 @@ auswertungsergebnisse=dbc.Container(
                     [
                     dbc.Row(
                         [
-                        dbc.Col(Überschrift_Auswertung, md=12),
+                        dbc.Col(parameter3, md=4),
+                        dbc.Col(parameter4, md=4),
+                        dbc.Col(parameter5, md=4),
                         ],
-                    align="center",
+                    align="top",
                     ),
                     dbc.Row(
                         [
-                        dbc.Col(parameter3, md=6),
+                        dbc.Col(parameter6, md=4),
+                        dbc.Col(parameter7, md=4),
+                        dbc.Col(parameter8, md=4),
                         ],
-                    align="center",
-                    ),
-                    dbc.Row(
-                        [
-                        dbc.Col(parameter4, md=6),
-                        dbc.Col(parameter5, md=6),
-                        ],
-                    align="center",
+                    align="top",
                     ),
                     dbc.Row(
                         [
                         dbc.Col(ergebnis4),
                         ],
-                    align="center",
+                    align="top",
                     ),  
                     ],
                     fluid=True,
@@ -315,8 +316,8 @@ app.layout = dbc.Container(
         dbc.Tabs(
             [
                 dbc.Tab(label="Info", tab_id="info"),
-                dbc.Tab(label="Ergebnisse", tab_id="ergebnisse"),
-                dbc.Tab(label="Auswertungsergebnisse", tab_id="auswertungsergebnisse")
+                dbc.Tab(label="Stromkosten", tab_id="ergebnisse"),
+                dbc.Tab(label="eigene Auswertung", tab_id="auswertungsergebnisse")
             ],
             id="tabs",
             active_tab="info",
@@ -413,11 +414,11 @@ def update_graph2(wp_name,standort, gebäudetyp, pv, strombezugskosten, einspeis
     else:
         df_f = df[(df['Standort'] == region.index(standort)+1)&(df['Jahr']==2015)&(df['Gebäudetyp']==gebäudetyp)&(df['PV-Ausrichtung']==pv)&(df['WP-Name']==wpname)]
     
-    df_f['Kosten [1/Jahr]'] = df_f['Netzbezug [kWh]'].values * strombezugskosten/100 - df_f['Netzeinspeisung [kWh]'].values * einspeisevergütung/100
+    df_f['Kosten [€/a]'] = df_f['Netzbezug [kWh]'].values * strombezugskosten/100 - df_f['Netzeinspeisung [kWh]'].values * einspeisevergütung/100
 
     fig = px.bar(df_f,
                 x='Batteriespeicher [kWh]',
-                y='Kosten [1/Jahr]',
+                y='Kosten [€/a]',
                 barmode='group',
                 color='Art des Jahres',
                 height=450
@@ -426,7 +427,7 @@ def update_graph2(wp_name,standort, gebäudetyp, pv, strombezugskosten, einspeis
                 yaxis_title='Bilanzielle Stromkosten [€/a]',
                 title_x=0
                 )
-    fig.update_yaxes(range=[df_f['Kosten [1/Jahr]'].min()*0.9,df_f['Kosten [1/Jahr]'].max()*1.05])
+    fig.update_yaxes(range=[df_f['Kosten [€/a]'].min()*0.9,df_f['Kosten [€/a]'].max()*1.05])
     fig.update_xaxes(dtick=1)
     fig.update_layout(legend=dict(
     yanchor="top",
@@ -445,20 +446,20 @@ def update_graph2(wp_name,standort, gebäudetyp, pv, strombezugskosten, einspeis
     if wp_name['points'][0]['curveNumber']==0:
         fig['data'][0]['marker']['color']=color_graph
         if color_graph=='#636efa':
-            fig['data'][1]['marker']['color']='#828bfb'
-            fig['data'][2]['marker']['color']='#4f58c8'
+            fig['data'][1]['marker']['color']='#CBCEFF'
+            fig['data'][2]['marker']['color']='#0410AE'
         else:
-            fig['data'][1]['marker']['color']='#f27662'
-            fig['data'][2]['marker']['color']='#bf442f'
+            fig['data'][1]['marker']['color']='#F2C2B9'
+            fig['data'][2]['marker']['color']='#AC1B03'
     else:
         if color_graph=='#636efa':
-            fig['data'][0]['marker']['color']='#EF553B'
-            fig['data'][1]['marker']['color']='#f27662'
-            fig['data'][2]['marker']['color']='#bf442f'
+            fig['data'][0]['marker']['color']='#ef553b'
+            fig['data'][1]['marker']['color']='#F2C2B9'
+            fig['data'][2]['marker']['color']='#AC1B03'
         else:
             fig['data'][0]['marker']['color']='#636efa'
-            fig['data'][1]['marker']['color']='#828bfb'
-            fig['data'][2]['marker']['color']='#4f58c8'
+            fig['data'][1]['marker']['color']='#CBCEFF'
+            fig['data'][2]['marker']['color']='#0410AE'
 
     return fig
 
@@ -505,7 +506,7 @@ def update_graph(xaxis_column_name, yaxis_column_name,
                     facet_row=dfff[facetcolumn],
                     facet_col_wrap=2,
                     color=dfff[colour],
-                    height=300*len(dfff[facetcolumn].unique()),
+                    height=400*len(dfff[facetcolumn].unique()),
                     facet_row_spacing=0.14/len(dfff[facetcolumn].unique()), 
                     barmode="overlay",
             )
@@ -516,7 +517,7 @@ def update_graph(xaxis_column_name, yaxis_column_name,
                     facet_row=dfff[facetcolumn],
                     facet_col_wrap=2,
                     color=dfff[colour],
-                    height=300*len(dfff[facetcolumn].unique()),
+                    height=400*len(dfff[facetcolumn].unique()),
                     facet_row_spacing=0.14/len(dfff[facetcolumn].unique()), 
             )
         fig.update_yaxes(title=yaxis_column_name)
@@ -527,7 +528,7 @@ def update_graph(xaxis_column_name, yaxis_column_name,
                     facet_row=dfff[facetcolumn],
                     facet_col_wrap=2,
                     color=dfff[colour],
-                    height=300*len(dfff[facetcolumn].unique()),
+                    height=400*len(dfff[facetcolumn].unique()),
                     facet_row_spacing=0.14/len(dfff[facetcolumn].unique()), 
             )
         fig.update_yaxes(title=yaxis_column_name)
