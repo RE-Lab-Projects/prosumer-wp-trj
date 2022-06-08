@@ -50,7 +50,7 @@ Intro2 = dcc.Markdown('''
 Intro3 = dcc.Markdown('''
     [Download](https://re-lab.hs-emden-leer.de/s/ef42jE6cMcMzNR7/download) der Veröffentlichung zur Erläuterung der Ergebnisse.
 
-    [Download](https://re-lab.hs-emden-leer.de/s/S4wazTQdDELPJPi/download) des Ergebnis-Datensatz als CSV Datei (CC-BY-4.0)
+    [Download](https://re-lab.hs-emden-leer.de/s/LgMXA3FkTxEr7Py/download) des Ergebnis-Datensatz als CSV Datei (CC-BY-4.0)
     
 ''',
     link_target="_blank",
