@@ -398,7 +398,7 @@ def update_graph2(wp_name,standort, gebäudetyp, pv, strombezugskosten, einspeis
                 x='Batteriespeicher [kWh]',
                 y='Kosten [1/Jahr]',
                 barmode='group',
-                color='Typ',
+                color='Art des Jahres',
                 height=500
                 )
     fig.update_layout(xaxis_title='Batteriespeicher [kWh]',
