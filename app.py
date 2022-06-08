@@ -212,7 +212,7 @@ parameter5=dbc.Card([
 
 ergebnis1 = dbc.Card(dbc.CardBody(
         [
-            html.H5("Ergebnisse für das gewählte Gebäude", className="card-title"),
+            html.H5("Ergebnisse: ausgewähltes Gebäude", className="card-title"),
             html.H6("mit 10 kWp PV, ohne Bateriespeicher", className="card-subtitle"),
             dcc.Graph(
             id='crossfilter-indicator-scatter',
@@ -316,7 +316,7 @@ app.layout = dbc.Container(
             active_tab="info",
         ),
         html.Div(id="tab-content", className="p-4"),
-    ]
+    ],fluid=True
 )
 
 # Callbacks und Definitions ######################
@@ -347,7 +347,7 @@ def update_graph(standort, gebäudetyp,pv,strombezugskosten, einspeisevergütung
                     hover_data=['WP-Hersteller'],
                     color='WP-Kategorie',
                     labels=dict(x='Bilanzielle Stromkosten [€/a]',y='WP-Models',color='WP-Kategorie'),
-                    height=500
+                    height=450
             ).update_yaxes(categoryorder='total descending')
     fig.update_layout(legend=dict(
     yanchor="top",
@@ -360,6 +360,12 @@ def update_graph(standort, gebäudetyp,pv,strombezugskosten, einspeisevergütung
                 yaxis_title='Wärmepumpe',
                 title_x=0)
     fig.update_layout(legend={'title_text':''})
+    fig.update_layout(margin=dict(
+        t=15,
+        r=0,
+        b=0,
+        l=0,
+    ),)
     if fig['data'][0]['legendgroup']=='Sole/Wasser':
         fig['data'][0]['marker']['color']='#636efa'
         fig['data'][1]['marker']['color']='#EF553B'
@@ -399,7 +405,7 @@ def update_graph2(wp_name,standort, gebäudetyp, pv, strombezugskosten, einspeis
                 y='Kosten [1/Jahr]',
                 barmode='group',
                 color='Art des Jahres',
-                height=500
+                height=450
                 )
     fig.update_layout(xaxis_title='Batteriespeicher [kWh]',
                 yaxis_title='Bilanzielle Stromkosten [€/a]',
@@ -414,6 +420,12 @@ def update_graph2(wp_name,standort, gebäudetyp, pv, strombezugskosten, einspeis
     )
     )
     fig.update_layout(legend={'title_text':''})
+    fig.update_layout(margin=dict(
+        t=15,
+        r=0,
+        b=0,
+        l=0,
+    ),)
     return fig
 
 @app.callback(
