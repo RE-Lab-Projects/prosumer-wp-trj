@@ -427,6 +427,7 @@ def update_graph2(wp_name,standort, gebäudetyp, pv, strombezugskosten, einspeis
                 title_x=0
                 )
     fig.update_yaxes(range=[df_f['Kosten [1/Jahr]'].min()*0.9,df_f['Kosten [1/Jahr]'].max()*1.05])
+    fig.update_xaxes(dtick=1)
     fig.update_layout(legend=dict(
     yanchor="top",
     y=0.99,
