@@ -183,7 +183,7 @@ parameter4 = dbc.Card([
             dcc.Markdown("Reihen: "),
             dcc.Dropdown(
                 df.select_dtypes(include=['object', 'int64' ]).columns,
-                'Gebäudetyp',
+                'Jahr',
                 id='facet-column',
             ),
             ],body=True)
