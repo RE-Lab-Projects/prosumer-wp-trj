@@ -212,12 +212,15 @@ parameter5=dbc.Card([
 
 ergebnis1 = dbc.Card(dbc.CardBody(
         [
-            html.H5("Ergebnisse: ausgewähltes Gebäude", className="card-title"),
+            html.H5("Ausgewähltes Gebäude", className="card-title"),
             html.H6("mit 10 kWp PV, ohne Bateriespeicher", className="card-subtitle"),
             dcc.Graph(
             id='crossfilter-indicator-scatter',
             hoverData={'points': [{'curveNumber': 0,'x':'geregelt','hovertext': 'Generic Luft/Wasser geregelt'}]},
-            clickData={'points': [{'curveNumber': 0,'x':'geregelt','hovertext': 'Generic Luft/Wasser geregelt'}]}
+            clickData={'points': [{'curveNumber': 0,'x':'geregelt','hovertext': 'Generic Luft/Wasser geregelt'}]},
+            config={
+            'displayModeBar': False
+            }
             ),
             ]))
 
@@ -228,7 +231,10 @@ ergebnis2 = dbc.Card(dbc.CardBody(
             dcc.Graph(
             id='graph2',
             hoverData={'points': [{'curveNumber': 0,'x':'geregelt','hovertext': 'Generic Luft/Wasser geregelt'}]},
-            clickData={'points': [{'curveNumber': 0,'x':'geregelt','hovertext': 'Generic Luft/Wasser geregelt'}]}
+            clickData={'points': [{'curveNumber': 0,'x':'geregelt','hovertext': 'Generic Luft/Wasser geregelt'}]},
+            config={
+            'displayModeBar': False
+            }
             ),
             ]))
 
