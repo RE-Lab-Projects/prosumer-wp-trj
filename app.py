@@ -213,7 +213,7 @@ parameter5=dbc.Card([
 ergebnis1 = dbc.Card(dbc.CardBody(
         [
             html.H5("Ausgewähltes Gebäude", className="card-title"),
-            html.H6("mit 10 kWp PV, ohne Bateriespeicher", className="card-subtitle"),
+            html.H6("mit 10 kWp PV, ohne Batteriespeicher", className="card-subtitle"),
             dcc.Graph(
             id='crossfilter-indicator-scatter',
             hoverData={'points': [{'curveNumber': 0,'x':'geregelt','hovertext': 'Generic Luft/Wasser geregelt'}]},
@@ -347,23 +347,24 @@ def update_graph(standort, gebäudetyp,pv,strombezugskosten, einspeisevergütung
     
     dff=dff.sort_values('bilanzielle Energiekosten')
     fig=px.bar(data_frame=dff,
-                    y='WP-Name',                    
-                    x='bilanzielle Energiekosten',
+                    y='bilanzielle Energiekosten',                    
+                    x='WP-Name',
                     hover_name='WP-Name',
                     hover_data=['WP-Hersteller'],
                     color='WP-Kategorie',
-                    labels=dict(x='Bilanzielle Stromkosten [€/a]',y='WP-Models',color='WP-Kategorie'),
-                    height=450
-            ).update_yaxes(categoryorder='total descending')
+                    labels=dict(y='Bilanzielle Stromkosten [€/a]',x='Wärmepumpe',color='WP-Kategorie'),
+                    height=450,
+            ).update_xaxes(categoryorder='total ascending')
+    fig.layout.xaxis.update(showticklabels=False)
     fig.update_layout(legend=dict(
     yanchor="top",
     y=0.99,
     xanchor="right",
     x=0.99,
     ))
-    fig.update_xaxes(range=[dff['bilanzielle Energiekosten'].min()*0.9,dff['bilanzielle Energiekosten'].max()*1.05])
-    fig.update_layout(xaxis_title='Bilanzielle Stromkosten [€/a]',
-                yaxis_title='Wärmepumpe',
+    fig.update_yaxes(range=[dff['bilanzielle Energiekosten'].min()*0.9,dff['bilanzielle Energiekosten'].max()*1.05])
+    fig.update_layout(yaxis_title='Bilanzielle Stromkosten [€/a]',
+                xaxis_title='Wärmepumpe (auswählen für mehr Infos)',
                 title_x=0)
     fig.update_layout(legend={'title_text':''})
     fig.update_layout(margin=dict(
@@ -451,7 +452,7 @@ def update_table(wp_name, Wp_name):
         hp=hp[['Manufacturer','Modelnamen']].rename(columns={'Manufacturer':'Hersteller'})
     except:
         pass
-    return hp.to_markdown()
+    return hp.to_markdown(index=False)
 
 @app.callback(
     Output('graph3', 'figure'),
