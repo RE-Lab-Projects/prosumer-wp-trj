@@ -56,20 +56,6 @@ Intro3 = dcc.Markdown('''
     link_target="_blank",
 )
 
-Überschrift_Ergebnis1 = dbc.Card(dcc.Markdown('''
-    >
-    > **Ergebnisse für ein EFH mit 10 kWp, ohne Batteriespeicher** 
-    >
-'''))
-
-Überschrift_Ergebnis2 = dbc.Card(dcc.Markdown(
-'''
-    >
-    > **Reduktion in Abhängigkeit eines Batteriespeichers** 
-    > (bitte auf den Balken einer bestimmten Wärmepumpe klicken)
-    >
-'''))
-
 Überschrift_Ergebnis3 = dbc.Card(dcc.Markdown(
 '''
     >
@@ -137,12 +123,28 @@ parameter1 = dbc.Card([
                 'Süd',
                 id='sort3',
             ),
-            ],body=True)
+            ],body=True, outline=True)
 
-parameter2 = dbc.Card([
-            dcc.Markdown('''
-            Ökonomische Parameter zur Bestimmung der bilanziellen Stromkosten
-            '''),
+parameter2 = dbc.Card([html.Div(
+            [
+                html.P(
+                    [
+                        "Ökonomische Parameter zur Bestimmung der ",
+                        html.Span(
+                            "bilanziellen Stromkosten",
+                            id="tooltip-stromkosten",
+                            style={"textDecoration": "underline", "cursor": "pointer"},
+                        ),
+                        ".",
+                    ]
+                ),
+                dbc.Tooltip(
+                    "Summe aus Strombezugskosten für das gesamte Gebäude abzüglich "
+                    "der Einspeisevergütung.",
+                    target="tooltip-stromkosten",
+                ),
+            ]
+            ),
             html.Div("Strombezugskosten in Ct/kWh: "),
             dcc.Slider(28, 40, 1,
                value=35,
@@ -208,27 +210,35 @@ parameter5=dbc.Card([
             ),
             ],body=True)
 
-ergebnis1 = dbc.Card([
+ergebnis1 = dbc.Card(dbc.CardBody(
+        [
+            html.H5("Ergebnisse für das gewählte Gebäude", className="card-title"),
+            html.H6("mit 10 kWp PV, ohne Bateriespeicher", className="card-subtitle"),
             dcc.Graph(
             id='crossfilter-indicator-scatter',
             hoverData={'points': [{'curveNumber': 0,'x':'geregelt','hovertext': 'Generic Luft/Wasser geregelt'}]},
             clickData={'points': [{'curveNumber': 0,'x':'geregelt','hovertext': 'Generic Luft/Wasser geregelt'}]}
             ),
-            ])
+            ]))
 
-ergebnis2 = dbc.Card([
+ergebnis2 = dbc.Card(dbc.CardBody(
+        [
+            html.H5("Einfluss eines Batteriespeichers", className="card-title"),
+            html.H6("(vorab auf Wärmepumpe klicken)", className="card-subtitle"),
             dcc.Graph(
             id='graph2',
             hoverData={'points': [{'curveNumber': 0,'x':'geregelt','hovertext': 'Generic Luft/Wasser geregelt'}]},
             clickData={'points': [{'curveNumber': 0,'x':'geregelt','hovertext': 'Generic Luft/Wasser geregelt'}]}
             ),
-            ])
+            ]))
 
-ergebnis3 = [
+ergebnis3 = dbc.Card(dbc.CardBody(
+        [
+            html.H5("Weitere Informationen zur gewählten Wärmepumpe", className="card-title"),
             dcc.Markdown(
             id='wp-infos'
             ),
-            ]
+            ]))
 
 ergebnis4 = dbc.Card([
             dcc.Graph(
@@ -236,44 +246,20 @@ ergebnis4 = dbc.Card([
             ),
             ])
 
-ergebnisse = dbc.Container(
-                    [
+ergebnisse =        [
                     dbc.Row(
                         [
                         dbc.Col(parameter1, md=6),
                         dbc.Col(parameter2, md=6),
                         ],
-                    align="center",
+                    align="top",
                     ),
                     dbc.Row(
                         [
-                        dbc.Col(Überschrift_Ergebnis1, md=12),
+                        dbc.Col(ergebnis1, md=6),
+                        dbc.Col(ergebnis2, md=6)
                         ],
-                    align="center",
-                    ),
-                    dbc.Row(
-                        [
-                        dbc.Col(ergebnis1, md=12),
-                        ],
-                    align="center",
-                    ),
-                    dbc.Row(
-                        [
-                        dbc.Col(Überschrift_Ergebnis2, md=12),
-                        ],
-                    align="center",
-                    ),
-                    dbc.Row(
-                        [
-                        dbc.Col(ergebnis2, md=12),
-                        ],
-                    align="center",
-                    ),
-                    dbc.Row(
-                        [
-                        dbc.Col(Überschrift_Ergebnis3, md=12),
-                        ],
-                    align="center",
+                    align="top",
                     ),
                     dbc.Row(
                         [
@@ -281,9 +267,8 @@ ergebnisse = dbc.Container(
                         ],
                     align="center",
                     ),
-                    ],
-                    fluid=True,
-                    )
+                    ]
+                    
 auswertungsergebnisse=dbc.Container(
                     [
                     dbc.Row(
@@ -362,19 +347,19 @@ def update_graph(standort, gebäudetyp,pv,strombezugskosten, einspeisevergütung
                     hover_data=['WP-Hersteller'],
                     color='WP-Kategorie',
                     labels=dict(x='Bilanzielle Stromkosten [€/a]',y='WP-Models',color='WP-Kategorie'),
-                    height=600
+                    height=500
             ).update_yaxes(categoryorder='total descending')
     fig.update_layout(legend=dict(
-    orientation="h",
-    yanchor="middle",
-    y=-0.1,
-    x=0.5,
-    xanchor="center"
+    yanchor="top",
+    y=0.99,
+    xanchor="right",
+    x=0.99,
     ))
     fig.update_xaxes(range=[dff['bilanzielle Energiekosten'].min()*0.9,dff['bilanzielle Energiekosten'].max()*1.05])
     fig.update_layout(xaxis_title='Bilanzielle Stromkosten [€/a]',
-                xaxis={'side': 'top'},
-                yaxis_title='WP-Model')
+                yaxis_title='Wärmepumpe',
+                title_x=0)
+    fig.update_layout(legend={'title_text':''})
     if fig['data'][0]['legendgroup']=='Sole/Wasser':
         fig['data'][0]['marker']['color']='#636efa'
         fig['data'][1]['marker']['color']='#EF553B'
@@ -410,25 +395,25 @@ def update_graph2(wp_name,standort, gebäudetyp, pv, strombezugskosten, einspeis
     dff['Kosten [1/Jahr]'] = dff['Netzbezug [kWh]'].values * strombezugskosten/100 - dff['Netzeinspeisung [kWh]'].values * einspeisevergütung/100
 
     fig = px.bar(dff,
-                title='Modell: '+wpname, 
                 x='Batteriespeicher [kWh]',
                 y='Kosten [1/Jahr]',
                 barmode='group',
                 color='Typ',
-                height=600
+                height=500
                 )
     fig.update_layout(xaxis_title='Batteriespeicher [kWh]',
                 yaxis_title='Bilanzielle Stromkosten [€/a]',
-                title_x=0.5
+                title_x=0
                 )
     fig.update_yaxes(range=[dff['Kosten [1/Jahr]'].min()*0.9,dff['Kosten [1/Jahr]'].max()*1.05])
     fig.update_layout(legend=dict(
-    orientation="h",
-    yanchor="middle",
-    y=-0.2,
-    x=0.5,
-    xanchor="center"
-    ))
+    yanchor="top",
+    y=0.99,
+    xanchor="right",
+    x=0.99
+    )
+    )
+    fig.update_layout(legend={'title_text':''})
     return fig
 
 @app.callback(
@@ -445,7 +430,7 @@ def update_table(wp_name, Wp_name):
         samehp=samehp[:-2]
         samehp
         hp['Modelnamen']=samehp
-        hp=hp[['Manufacturer','Modelnamen', 'MAPE_COP']].rename(columns={'Manufacturer':'Hersteller','MAPE_COP':'MAPE'})
+        hp=hp[['Manufacturer','Modelnamen']].rename(columns={'Manufacturer':'Hersteller'})
     except:
         pass
     return hp.to_markdown()
@@ -502,4 +487,4 @@ def render_tab_content(active_tab):
 #############################################
 
 if __name__ == '__main__':
-    app.run_server(debug=False)
+    app.run_server(debug=True)
