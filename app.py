@@ -322,6 +322,7 @@ app.layout = dbc.Container(
             active_tab="info",
         ),
         html.Div(id="tab-content", className="p-4"),
+        dcc.Store(id='color_graph')
     ],fluid=True
 )
 
@@ -334,6 +335,7 @@ def standorttoregion(standort):
 
 @app.callback(
     Output('crossfilter-indicator-scatter', 'figure'),
+    Output('color_graph','data'),
     Input('region', 'value'),
     Input('sort2', 'value'),
     Input('sort3', 'value'),
@@ -379,7 +381,7 @@ def update_graph(standort, gebäudetyp,pv,strombezugskosten, einspeisevergütung
     else:
         fig['data'][1]['marker']['color']='#636efa'
         fig['data'][0]['marker']['color']='#EF553B'
-    return fig
+    return fig, fig['data'][0]['marker']['color']
 
 @app.callback(
     Output('graph2', 'figure'),
@@ -389,25 +391,31 @@ def update_graph(standort, gebäudetyp,pv,strombezugskosten, einspeisevergütung
     Input('sort3', 'value'),
     Input('strombezugskosten', 'value'),
     Input('einspeisevergütung', 'value'),
+    Input('color_graph', 'data')
     )
-def update_graph2(wp_name,standort, gebäudetyp, pv, strombezugskosten, einspeisevergütung):
+def update_graph2(wp_name,standort, gebäudetyp, pv, strombezugskosten, einspeisevergütung, color_graph):
+    df_f = df[(df['Standort'] == region.index(standort)+1)&(df['Gebäudetyp']==gebäudetyp)&(df['Jahr']==2015)&(df['Art des Jahres']=='durchschnittliches Jahr')&(df['Batteriespeicher [kWh]']==0)&(df['PV-Ausrichtung']==pv)]
+    df_f['bilanzielle Energiekosten'] = df_f['Netzbezug [kWh]'].values * strombezugskosten/100 - df_f['Netzeinspeisung [kWh]'].values * einspeisevergütung/100
+    df_f.loc[df_f['WP-Name']=='Generic','WP-Name']='Generic '+ df_f.loc[df_f['WP-Name']=='Generic','WP-Kategorie'] +' '+ df_f.loc[df_f['WP-Name']=='Generic','WP-Typ']
+    
+    df_f=df_f.sort_values('bilanzielle Energiekosten')
     wpname=wp_name['points'][0]['hovertext']
 
     if wp_name['points'][0]['hovertext'].startswith('Generic'):
         if wp_name['points'][0]['hovertext'].endswith('Luft/Wasser einstufig'):
-            dff = df[(df['Standort'] == region.index(standort)+1)&(df['Jahr']==2015)&(df['Gebäudetyp']==gebäudetyp)&(df['PV-Ausrichtung']==pv)&(df['WP-Name']=='Generic')&(df['WP-Kategorie']=='Luft/Wasser')&(df['WP-Typ']=='einstufig')]
+            df_f = df[(df['Standort'] == region.index(standort)+1)&(df['Jahr']==2015)&(df['Gebäudetyp']==gebäudetyp)&(df['PV-Ausrichtung']==pv)&(df['WP-Name']=='Generic')&(df['WP-Kategorie']=='Luft/Wasser')&(df['WP-Typ']=='einstufig')]
         elif wp_name['points'][0]['hovertext'].endswith('Luft/Wasser geregelt'):
-            dff = df[(df['Standort'] == region.index(standort)+1)&(df['Jahr']==2015)&(df['Gebäudetyp']==gebäudetyp)&(df['PV-Ausrichtung']==pv)&(df['WP-Name']=='Generic')&(df['WP-Kategorie']=='Luft/Wasser')&(df['WP-Typ']=='geregelt')]
+            df_f = df[(df['Standort'] == region.index(standort)+1)&(df['Jahr']==2015)&(df['Gebäudetyp']==gebäudetyp)&(df['PV-Ausrichtung']==pv)&(df['WP-Name']=='Generic')&(df['WP-Kategorie']=='Luft/Wasser')&(df['WP-Typ']=='geregelt')]
         elif wp_name['points'][0]['hovertext'].endswith('einstufig'):
-            dff = df[(df['Standort'] == region.index(standort)+1)&(df['Jahr']==2015)&(df['Gebäudetyp']==gebäudetyp)&(df['PV-Ausrichtung']==pv)&(df['WP-Name']=='Generic')&(df['WP-Kategorie']!='Luft/Wasser')&(df['WP-Typ']=='einstufig')]
+            df_f = df[(df['Standort'] == region.index(standort)+1)&(df['Jahr']==2015)&(df['Gebäudetyp']==gebäudetyp)&(df['PV-Ausrichtung']==pv)&(df['WP-Name']=='Generic')&(df['WP-Kategorie']!='Luft/Wasser')&(df['WP-Typ']=='einstufig')]
         elif wp_name['points'][0]['hovertext'].endswith('geregelt'):
-            dff = df[(df['Standort'] == region.index(standort)+1)&(df['Jahr']==2015)&(df['Gebäudetyp']==gebäudetyp)&(df['PV-Ausrichtung']==pv)&(df['WP-Name']=='Generic')&(df['WP-Kategorie']!='Luft/Wasser')&(df['WP-Typ']=='geregelt')]
+            df_f = df[(df['Standort'] == region.index(standort)+1)&(df['Jahr']==2015)&(df['Gebäudetyp']==gebäudetyp)&(df['PV-Ausrichtung']==pv)&(df['WP-Name']=='Generic')&(df['WP-Kategorie']!='Luft/Wasser')&(df['WP-Typ']=='geregelt')]
     else:
-        dff = df[(df['Standort'] == region.index(standort)+1)&(df['Jahr']==2015)&(df['Gebäudetyp']==gebäudetyp)&(df['PV-Ausrichtung']==pv)&(df['WP-Name']==wpname)]
+        df_f = df[(df['Standort'] == region.index(standort)+1)&(df['Jahr']==2015)&(df['Gebäudetyp']==gebäudetyp)&(df['PV-Ausrichtung']==pv)&(df['WP-Name']==wpname)]
     
-    dff['Kosten [1/Jahr]'] = dff['Netzbezug [kWh]'].values * strombezugskosten/100 - dff['Netzeinspeisung [kWh]'].values * einspeisevergütung/100
+    df_f['Kosten [1/Jahr]'] = df_f['Netzbezug [kWh]'].values * strombezugskosten/100 - df_f['Netzeinspeisung [kWh]'].values * einspeisevergütung/100
 
-    fig = px.bar(dff,
+    fig = px.bar(df_f,
                 x='Batteriespeicher [kWh]',
                 y='Kosten [1/Jahr]',
                 barmode='group',
@@ -418,7 +426,7 @@ def update_graph2(wp_name,standort, gebäudetyp, pv, strombezugskosten, einspeis
                 yaxis_title='Bilanzielle Stromkosten [€/a]',
                 title_x=0
                 )
-    fig.update_yaxes(range=[dff['Kosten [1/Jahr]'].min()*0.9,dff['Kosten [1/Jahr]'].max()*1.05])
+    fig.update_yaxes(range=[df_f['Kosten [1/Jahr]'].min()*0.9,df_f['Kosten [1/Jahr]'].max()*1.05])
     fig.update_layout(legend=dict(
     yanchor="top",
     y=0.99,
@@ -433,6 +441,24 @@ def update_graph2(wp_name,standort, gebäudetyp, pv, strombezugskosten, einspeis
         b=0,
         l=0,
     ),)
+    if wp_name['points'][0]['curveNumber']==0:
+        fig['data'][0]['marker']['color']=color_graph
+        if color_graph=='#636efa':
+            fig['data'][1]['marker']['color']='#828bfb'
+            fig['data'][2]['marker']['color']='#4f58c8'
+        else:
+            fig['data'][1]['marker']['color']='#f27662'
+            fig['data'][2]['marker']['color']='#bf442f'
+    else:
+        if color_graph=='#636efa':
+            fig['data'][0]['marker']['color']='#EF553B'
+            fig['data'][1]['marker']['color']='#f27662'
+            fig['data'][2]['marker']['color']='#bf442f'
+        else:
+            fig['data'][0]['marker']['color']='#636efa'
+            fig['data'][1]['marker']['color']='#828bfb'
+            fig['data'][2]['marker']['color']='#4f58c8'
+
     return fig
 
 @app.callback(
@@ -449,9 +475,11 @@ def update_table(wp_name, Wp_name):
         samehp=samehp[:-2]
         samehp
         hp['Modelnamen']=samehp
-        hp=hp[['Manufacturer','Modelnamen']].rename(columns={'Manufacturer':'Hersteller'})
+        hp=hp[['Manufacturer','Modelnamen']].rename(columns={'Manufacturer':'Hersteller &emsp;&emsp;'})
     except:
-        pass
+        hp=heatpumps.loc[heatpumps['Model']==wpname[0:7]]
+        hp['Modelnamen']='Generic'
+        hp=hp[['Manufacturer','Modelnamen']].rename(columns={'Manufacturer':'Hersteller &emsp;&emsp;'}).head(1)
     return hp.to_markdown(index=False)
 
 @app.callback(
@@ -466,12 +494,10 @@ def update_table(wp_name, Wp_name):
     )
 def update_graph(xaxis_column_name, yaxis_column_name,
                 year, typ,facetcolumn,colour,plottype):
-    print(year)
     dfff = pd.DataFrame()
     for weathertyp in typ:
         for jahr in year:
             dfff=pd.concat([dfff,df.loc[(df['Jahr'] == jahr)&(df['Art des Jahres']==weathertyp)]])
-    print(dfff)
     if plottype == 'Histogramm':
         fig = px.histogram(x=dfff[xaxis_column_name],
                     hover_name=dfff['WP-Name'],
