@@ -518,7 +518,8 @@ def update_graph(xaxis_column_name, yaxis_column_name,
                     facet_col_wrap=2,
                     color=dfff[colour],
                     height=400*len(dfff[facetcolumn].unique()),
-                    facet_row_spacing=0.14/len(dfff[facetcolumn].unique()), 
+                    facet_row_spacing=0.14/len(dfff[facetcolumn].unique()),
+                    points=False, 
             )
         fig.update_yaxes(title=yaxis_column_name)
     elif plottype == 'Scatterplot':
