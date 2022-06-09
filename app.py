@@ -534,6 +534,18 @@ def update_graph(xaxis_column_name, yaxis_column_name,
         fig.update_yaxes(title=yaxis_column_name)
     fig.update_traces(customdata=dfff['WP-Name'])
     fig.update_xaxes(title=xaxis_column_name)
+    fig.update_layout(legend=dict(
+    yanchor="top",
+    y=0.99,
+    xanchor="right",
+    x=0.99,
+    ))
+    fig.update_layout(margin=dict(
+        t=15,
+        r=0,
+        b=0,
+        l=0,
+    ),)
     return fig
 
 @app.callback(
