@@ -142,8 +142,23 @@ parameter2 = dbc.Card([html.Div(
                id='strombezugskosten'
             ),
             html.Div("Einspeisevergütung in Ct/kWh: "),
-            dcc.Slider(0, 12, 1,
+            dcc.Slider(0, 12, 0.5,
                value=6,
+               marks= {
+                    0: '0',
+                    1: '1',
+                    2: '2',
+                    3: '3',   
+                    4: '4',
+                    5: '5',
+                    6: '6',
+                    7: '7', 
+                    8: '8',
+                    9: '9',
+                    10: '10',
+                    11: '11',
+                    12: '12',
+               },
                id='einspeisevergütung'
             ),
             ],body=True)
@@ -217,7 +232,15 @@ parameter8 = dbc.Card(dbc.CardBody(
 ergebnis1 = dbc.Card(dbc.CardBody(
         [
             html.H5("Ausgewähltes Gebäude", className="card-title"),
-            html.H6("mit 10 kWp PV, ohne Batteriespeicher", className="card-subtitle"),
+            html.H6(["mit ", html.Span(
+                            "10 kWp",
+                            id="tooltip-PV",
+                            style={"textDecoration": "underline", "cursor": "pointer"},
+                        )," PV, ohne Batteriespeicher"], className="card-subtitle"),
+                        dbc.Tooltip(
+                        "Neigung: 35°",
+                        target="tooltip-PV"),
+            
             dcc.Graph(
             id='crossfilter-indicator-scatter',
             hoverData={'points': [{'curveNumber': 0,'x':'geregelt','hovertext': 'Generic Luft/Wasser geregelt'}]},
@@ -231,7 +254,7 @@ ergebnis1 = dbc.Card(dbc.CardBody(
 ergebnis2 = dbc.Card(dbc.CardBody(
         [
             html.H5("Einfluss eines Batteriespeichers", className="card-title"),
-            html.H6("(vorab auf Wärmepumpe klicken)", className="card-subtitle"),
+            html.H6("(vorab auf Balken einer Wärmepumpe klicken)", className="card-subtitle"),
             dcc.Graph(
             id='graph2',
             hoverData={'points': [{'curveNumber': 0,'x':'geregelt','hovertext': 'Generic Luft/Wasser geregelt'}]},
@@ -367,7 +390,7 @@ def update_graph(standort, gebäudetyp,pv,strombezugskosten, einspeisevergütung
     ))
     fig.update_yaxes(range=[dff['bilanzielle Energiekosten'].min()*0.9,dff['bilanzielle Energiekosten'].max()*1.05])
     fig.update_layout(yaxis_title='Bilanzielle Stromkosten [€/a]',
-                xaxis_title='Wärmepumpe (auswählen für mehr Infos)',
+                xaxis_title='Wärmepumpe (klicken für mehr Infos)',
                 title_x=0)
     fig.update_layout(legend={'title_text':''})
     fig.update_layout(margin=dict(
@@ -477,11 +500,19 @@ def update_table(wp_name, Wp_name):
         samehp=samehp[:-2]
         samehp
         hp['Modelnamen']=samehp
-        hp=hp[['Manufacturer','Modelnamen']].rename(columns={'Manufacturer':'Hersteller &emsp;&emsp;'})
+        hp=hp[['Manufacturer','Modelnamen']].rename(columns={'Manufacturer':'Hersteller &emsp;&emsp;&emsp;&emsp;'})
     except:
         hp=heatpumps.loc[heatpumps['Model']==wpname[0:7]]
-        hp['Modelnamen']='Generic'
-        hp=hp[['Manufacturer','Modelnamen']].rename(columns={'Manufacturer':'Hersteller &emsp;&emsp;'}).head(1)
+        if wp_name['points'][0]['hovertext'].endswith('Luft/Wasser einstufig'):
+            name='Luft/Wasser einstufig'
+        elif wp_name['points'][0]['hovertext'].endswith('Luft/Wasser geregelt'):
+            name='Luft/Wasser geregelt'
+        elif wp_name['points'][0]['hovertext'].endswith('einstufig'):
+            name='Sole/Wasser einstufig'
+        elif wp_name['points'][0]['hovertext'].endswith('geregelt'):
+            name='Sole/Wasser geregelt'
+        hp['Modelnamen']=name
+        hp=hp[['Manufacturer','Modelnamen']].rename(columns={'Manufacturer':'Hersteller &emsp;&emsp;&emsp;&emsp;'}).head(1)
     return hp.to_markdown(index=False)
 
 @app.callback(
