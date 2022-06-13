@@ -16,7 +16,7 @@ app = Dash(__name__,
           {"name": "viewport", "content": "width=device-width, initial-scale=1"},
           ],
           )
-
+app.title = 'Wärmepumpen Web-Tool'
 # Initialize Server
 server = app.server
 
