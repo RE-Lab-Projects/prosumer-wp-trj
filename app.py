@@ -229,6 +229,43 @@ parameter8 = dbc.Card(dbc.CardBody(
             ),
             ]),body=True)
 
+parameter9 = dbc.Card(dbc.CardBody(
+            [
+            html.H5('Gebäudeparameter', className="card-title"),
+            dcc.Input(
+                placeholder='Wohnort oder PLZ',
+                type='text',
+                value='',
+                id='sim_Standort',            
+            ),
+            html.Div("entspricht Wetterregion: "),
+            dcc.Dropdown(
+                region,
+                'Nordostdeutsches Tiefland',
+                id='sim_region',
+            ),
+            html.Div('Wärmeverbrauch in kWh: '),
+            dcc.Input(id='wärmebedarf',type='number',placeholder='Wärmebedarf pro Jahr in kWh'),
+            html.Div('Wohnfläche: '),
+            dcc.Input(id='wohnfäche',type='number',placeholder='Wohnfläche in m²',),
+            html.Div("Gebäudetyp: "),
+            dcc.Dropdown(
+                df['Gebäudetyp'].unique(),
+                'Neubau (35/28)',
+                id='sim_Gebäude',
+            ),
+            html.Div('PV-Leistung in kWp: '),
+            dcc.Slider(0, 20, 1, value=5),
+            html.Div("PV-Ausrichtung: "),
+            dcc.Dropdown(
+                df['PV-Ausrichtung'].unique(),
+                'Süd',
+                id='sim_kwp',
+            ),
+            html.Br(),
+            html.Button('Geeignete Wärmepumpen anzeigen',id='get_hp')
+            ]),body=True)
+
 ergebnis1 = dbc.Card(dbc.CardBody(
         [
             html.H5("Ausgewähltes Gebäude", className="card-title"),
@@ -329,6 +366,19 @@ auswertungsergebnisse=dbc.Container(
                     ],
                     fluid=True,
 )
+
+simulieren = dbc.Container(
+                    [
+                    dbc.Row(
+                        [
+                        dbc.Col(parameter9, md=12),
+                        ],
+                    align="center",
+                    )
+                    ],
+                    fluid=True,
+)
+
 ###################################
 
 # Layout ##########################
@@ -597,6 +647,8 @@ def render_tab_content(active_tab):
             return ergebnisse
         elif active_tab=="auswertungsergebnisse":
             return auswertungsergebnisse
+        elif active_tab=='simulieren':
+            return simulieren
     return "No tab selected"
 #############################################
 
