@@ -6,6 +6,7 @@ import plotly.express as px
 from hplib import hplib as hpl
 import plotly.graph_objects as go
 from PLZtoWeatherRegion import getregion
+from gethpfromHeizlast import fitting_hp
 
 # Initialize app with stylsheet and sub-path
 app = Dash(__name__,
@@ -246,14 +247,14 @@ parameter9 = dbc.Card(dbc.CardBody(
             ),
             html.Div('Wärmeverbrauch in kWh: '),
             dcc.Input(id='wärmebedarf',type='number',placeholder='Wärmebedarf pro Jahr in kWh'),
-            html.Div('Wohnfläche: '),
-            dcc.Input(id='wohnfäche',type='number',placeholder='Wohnfläche in m²',),
-            html.Div("Gebäudetyp: "),
-            dcc.Dropdown(
-                df['Gebäudetyp'].unique(),
-                'Neubau (35/28)',
-                id='sim_Gebäude',
-            ),
+            html.Div('Heiztemperatur (Vorlauf): '),
+            dcc.Input(id='t_heiz',type='number',placeholder='Vorlauftemperatur in °C',),
+            html.Br(),
+            ]),body=True)
+
+parameter10= dbc.Card(dbc.CardBody(
+            [
+            html.H5('Gebäudeparameter', className="card-title"),
             html.Div('PV-Leistung in kWp: '),
             dcc.Slider(0, 20, 1, value=5),
             html.Div("PV-Ausrichtung: "),
@@ -261,10 +262,7 @@ parameter9 = dbc.Card(dbc.CardBody(
                 df['PV-Ausrichtung'].unique(),
                 'Süd',
                 id='sim_kwp',
-            ),
-            html.Br(),
-            html.Button('Geeignete Wärmepumpen anzeigen',id='get_hp')
-            ]),body=True)
+            ),]),body=True)
 
 ergebnis1 = dbc.Card(dbc.CardBody(
         [
@@ -315,6 +313,12 @@ ergebnis4 = dbc.Card([
             id='graph3',
             ),
             ])
+
+ergebnis5 = dbc.Card(dbc.CardBody([
+    dcc.Graph(
+        id='wptochoose',
+    )
+]))
 
 ergebnisse =        [
                     dbc.Row(
@@ -373,7 +377,13 @@ simulieren = dbc.Container(
                         [
                         dbc.Col(parameter9, md=12),
                         ],
-                    align="center",
+                    align="top",
+                    ),
+                    dbc.Row(
+                        [
+                        dbc.Col(ergebnis5),
+                        ],
+                    align='top'
                     )
                     ],
                     fluid=True,
@@ -390,7 +400,8 @@ app.layout = dbc.Container(
             [
                 dbc.Tab(label="Info", tab_id="info"),
                 dbc.Tab(label="Stromkosten", tab_id="ergebnisse"),
-                dbc.Tab(label="eigene Auswertung", tab_id="auswertungsergebnisse")
+                dbc.Tab(label="eigene Auswertung", tab_id="auswertungsergebnisse"),
+                dbc.Tab(label="eigene Simulation", tab_id="simulieren"),
             ],
             id="tabs",
             active_tab="info",
@@ -628,6 +639,22 @@ def update_graph(xaxis_column_name, yaxis_column_name,
         b=0,
         l=0,
     ),)
+    return fig
+
+@app.callback(
+    Output('sim_region', 'value'),
+    Input('sim_Standort', 'value'))
+def standorttoregion(standort):
+    return region[getregion(standort)-1]
+
+@app.callback(
+    Output('wptochoose','figure'),
+    Input('sim_region','value'),
+    Input('wärmebedarf','value'),
+    Input('t_heiz','value'),
+)
+def clickbutton(sim_region,wärmebedarf,t_heiz):
+    fig = px.bar(fitting_hp(wärmebedarf,region.index(sim_region)+1,t_heiz), x='Model',y='COP', color='WP-Kategorie')
     return fig
 
 @app.callback(
