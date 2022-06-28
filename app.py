@@ -30,7 +30,7 @@ region=['Nordseeküste','Ostseeküste','Nordwestdeutsches Tiefland','Nordostdeut
 'Nördliche und westliche Mittelgebirge, zentrale Bereiche','Oberharz und Schwarzwald (mittlere Lagen)','Thüringer Becken und Sächsisches Hügelland','Südöstliche Mittelgebirge bis 1000 m',
 'Erzgebirge, Böhmer- und Schwarzwald oberhalb 1000 m','Oberrheingraben und unteres Neckartal','Schwäbisch-fränkisches Stufenland und Alpenvorland','Schwäbische Alb und Baar',
 'Alpenrand und -täler']
-
+nutzungsgrad_tww=['gebäudezentral EFH (mit Zirkulation)','gebäudezentral MFH (mit Zirkulation)','gebäudezentral (ohne Zirkulation)','wohnungszental']
 # Texte definieren ################
 Intro1 = dcc.Markdown('''
     **Veröffentlichung:** 
@@ -245,10 +245,13 @@ parameter9 = dbc.Card(dbc.CardBody(
                 'Nordostdeutsches Tiefland',
                 id='sim_region',
             ),
-            html.Div('Wärmeverbrauch in kWh: '),
+            html.Div('Gebäudeinformationen: '),
             dcc.Input(id='wärmebedarf',type='number',placeholder='Wärmebedarf pro Jahr in kWh'),
-            html.Div('Heiztemperatur (Vorlauf): '),
             dcc.Input(id='t_heiz',type='number',placeholder='Vorlauftemperatur in °C',),
+            dcc.Input(id='baujahr',type='number',placeholder='Baujahr',),
+            dcc.Input(id='personen',type='number',placeholder='Personenanzahl',),
+            dcc.Dropdown(nutzungsgrad_tww,
+            id='eff_tww',placeholder='Art der Trinkwassererwärmung'),
             html.Br(),
             ]),body=True)
 
@@ -652,9 +655,14 @@ def standorttoregion(standort):
     Input('sim_region','value'),
     Input('wärmebedarf','value'),
     Input('t_heiz','value'),
+    Input('baujahr','value'),
+    Input('personen','value'),
+    Input('eff_tww','value'),
 )
-def clickbutton(sim_region,wärmebedarf,t_heiz):
-    fig = px.bar(fitting_hp(wärmebedarf,region.index(sim_region)+1,t_heiz), x='Model',y='COP', color='WP-Kategorie')
+def clickbutton(sim_region,wärmebedarf,t_heiz,baujahr,personen,eff_tww):
+    [0.3,0.45,0.6,0.775][nutzungsgrad_tww.index(eff_tww)]
+    hp,Heizlast=fitting_hp(wärmebedarf,region.index(sim_region)+1,t_heiz,baujahr,personen,[0.3,0.45,0.6,0.775][nutzungsgrad_tww.index(eff_tww)])
+    fig = px.bar(hp, x='Model',y='COP', color='WP-Kategorie')
     return fig
 
 @app.callback(
