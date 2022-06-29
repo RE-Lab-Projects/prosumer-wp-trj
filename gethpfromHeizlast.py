@@ -16,7 +16,7 @@ def fitting_hp(energieverbrauch, standort,Vorlauftemperatur,Baujahr,Personen, ef
     """
     
     hp=pd.read_csv('src/simulation_data/hp_Normheizlast.csv')
-    weather=pd.read_csv('src/simulation_data/TRJ-Tabelle.csv').head(15)# for extreme Winter year
+    weather=pd.read_csv('src/simulation_data/TRJ-Tabelle.csv').head(15)# average year
     eff_heiz=0.9                #average from DIN EN 12831 Tabelle 38
     if Baujahr<=2000:           
         if Baujahr<=1995:

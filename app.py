@@ -1,12 +1,14 @@
 # Imports
-from dash import Dash, html, dcc, Input, Output
+from dash import Dash, html, dcc, Input, Output, State
 import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.express as px
 from hplib import hplib as hpl
 import plotly.graph_objects as go
+import statistics
 from PLZtoWeatherRegion import getregion
 from gethpfromHeizlast import fitting_hp
+from simulate import simulate
 
 # Initialize app with stylsheet and sub-path
 app = Dash(__name__,
@@ -246,26 +248,34 @@ parameter9 = dbc.Card(dbc.CardBody(
                 id='sim_region',
             ),
             html.Div('Gebäudeinformationen: '),
-            dcc.Input(id='wärmebedarf',type='number',placeholder='Wärmebedarf pro Jahr in kWh'),
-            dcc.Input(id='t_heiz',type='number',placeholder='Vorlauftemperatur in °C',),
-            dcc.Input(id='baujahr',type='number',placeholder='Baujahr',),
-            dcc.Input(id='personen',type='number',placeholder='Personenanzahl',),
-            dcc.Dropdown(nutzungsgrad_tww,
+            dcc.Input(id='wärmebedarf',value=15000,type='number',placeholder='Wärmebedarf pro Jahr in kWh'),
+            dcc.Input(id='t_heiz',value=35,type='number',placeholder='Vorlauftemperatur in °C',),
+            dcc.Input(id='baujahr',value=2000,type='number',placeholder='Baujahr',),
+            dcc.Input(id='personen',value=4,type='number',placeholder='Personenanzahl',),
+            dcc.Dropdown(nutzungsgrad_tww,value=nutzungsgrad_tww[0],
             id='eff_tww',placeholder='Art der Trinkwassererwärmung'),
             html.Br(),
             ]),body=True)
 
 parameter10= dbc.Card(dbc.CardBody(
             [
-            html.H5('Gebäudeparameter', className="card-title"),
+            html.H5('Technische Geräte', className="card-title"),
             html.Div('PV-Leistung in kWp: '),
-            dcc.Slider(0, 20, 1, value=5),
+            dcc.Slider(0, 20, 1, value=5, id='sim_pv_kwp'),
             html.Div("PV-Ausrichtung: "),
             dcc.Dropdown(
                 df['PV-Ausrichtung'].unique(),
                 'Süd',
-                id='sim_kwp',
-            ),]),body=True)
+                id='sim_pv_ausrichtung',
+            ),
+            html.Div('Batteriegröße in kWh??'),
+            html.Div('Smartgrid checkbox.')
+            ]),body=True)
+
+button = dbc.Card(dbc.CardBody(
+    [
+        html.Button('Start Simulation with choosen Data',id='startsim', n_clicks=0),
+    ]))
 
 ergebnis1 = dbc.Card(dbc.CardBody(
         [
@@ -320,8 +330,12 @@ ergebnis4 = dbc.Card([
 ergebnis5 = dbc.Card(dbc.CardBody([
     dcc.Graph(
         id='wptochoose',
-    )
-]))
+    )]))
+
+ergebnis6 = dbc.Card(dbc.CardBody([
+    dcc.Markdown(
+        id='sim_hp',
+    )]))
 
 ergebnisse =        [
                     dbc.Row(
@@ -378,7 +392,8 @@ simulieren = dbc.Container(
                     [
                     dbc.Row(
                         [
-                        dbc.Col(parameter9, md=12),
+                        dbc.Col(parameter9, md=6),
+                        dbc.Col(parameter10, md=6)
                         ],
                     align="top",
                     ),
@@ -387,7 +402,14 @@ simulieren = dbc.Container(
                         dbc.Col(ergebnis5),
                         ],
                     align='top'
-                    )
+                    ),
+                    dbc.Row(
+                        [
+                        dbc.Col(ergebnis6, md=8),
+                        dbc.Col(button, md=4)
+                        ],
+                    align='center'
+                    ),
                     ],
                     fluid=True,
 )
@@ -410,7 +432,8 @@ app.layout = dbc.Container(
             active_tab="info",
         ),
         html.Div(id="tab-content", className="p-4"),
-        dcc.Store(id='color_graph')
+        dcc.Store(id='color_graph'),
+        dcc.Store(id='simhp')
     ],fluid=True
 )
 
@@ -660,10 +683,53 @@ def standorttoregion(standort):
     Input('eff_tww','value'),
 )
 def clickbutton(sim_region,wärmebedarf,t_heiz,baujahr,personen,eff_tww):
-    [0.3,0.45,0.6,0.775][nutzungsgrad_tww.index(eff_tww)]
     hp,Heizlast=fitting_hp(wärmebedarf,region.index(sim_region)+1,t_heiz,baujahr,personen,[0.3,0.45,0.6,0.775][nutzungsgrad_tww.index(eff_tww)])
     fig = px.bar(hp, x='Model',y='COP', color='WP-Kategorie')
     return fig
+
+@app.callback(
+    Output("simhp", "value"),
+    Input("wptochoose", "clickData"),
+    State('sim_region','value'),
+    State('wärmebedarf','value'),
+    State('t_heiz','value'),
+    State('baujahr','value'),
+    State('personen','value'),
+    State('eff_tww','value'),
+    Input('sim_pv_kwp','value'),
+    Input('sim_pv_ausrichtung','value'),
+    State('simhp','value')
+)
+def simulatehp(heatpumps,sim_region,wärmebedarf,t_heiz,baujahr,personen,eff_tww,pv_kwp,pv_ausrichtung,df):
+    try:
+        df=pd.DataFrame.from_dict(df)
+        if (len(df)>=4):
+            df=pd.DataFrame()
+        simhp_value=pd.concat([df, pd.DataFrame({'Region':[region.index(sim_region)+1],'wärmebedarf':[wärmebedarf],'Vorlauf':[t_heiz],'personen':[personen],'Nutzungsgrad_TWW':[eff_tww],'baujahr':[baujahr],'models':[heatpumps['points'][0]['x']], 'kwp':[pv_kwp],'pv_ausrichtung':[pv_ausrichtung]})])
+    except:
+        simhp_value=pd.DataFrame({'Region':[region.index(sim_region)+1],'wärmebedarf':[wärmebedarf],'Vorlauf':[t_heiz],'personen':[personen],'Nutzungsgrad_TWW':[eff_tww],'baujahr':[baujahr],'models':[heatpumps['points'][0]['x']], 'kwp':[pv_kwp],'pv_ausrichtung':[pv_ausrichtung]})
+
+    return simhp_value.to_dict(orient='list')
+
+@app.callback(
+    Output('sim_hp', 'children'),
+    Input('simhp','value')
+)
+def showsimhp(simhp):
+    return(pd.DataFrame.from_dict(simhp).to_markdown())
+
+@app.callback(
+    Output('sim_hp','value'),
+    Input('startsim', 'n_clicks'),
+    State('simhp', 'value')
+)
+def cleardata(click,para):
+    para=pd.DataFrame.from_dict(para)
+    for simulation in para.index:
+        eff_tww=[0.3,0.45,0.6,0.775][nutzungsgrad_tww.index(para.iloc[simulation,4])]
+        p_th_calc=simulate(para.iloc[simulation,0],para.iloc[simulation,1],para.iloc[simulation,2],para.iloc[simulation,3],eff_tww,para.iloc[simulation,5],para.iloc[simulation,6],para.iloc[simulation,7],para.iloc[simulation,8])
+        print(statistics.mean(p_th_calc)*8.76)
+    return('TEXT')
 
 @app.callback(
     Output("tab-content", "children"),
