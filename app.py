@@ -338,6 +338,11 @@ ergebnis6 = dbc.Card(dbc.CardBody([
         id='sim_hp',
     )]))
 
+ergebnis7 = dbc.Card(dbc.CardBody([
+    dcc.Graph(
+        id='economics',
+    )]))
+
 ergebnisse =        [
                     dbc.Row(
                         [
@@ -393,8 +398,8 @@ simulieren = dbc.Container(
                     [
                     dbc.Row(
                         [
-                        dbc.Col(parameter9, md=8),
-                        dbc.Col(parameter10, md=4)
+                        dbc.Col(parameter9, md=12, lg=8),
+                        dbc.Col(parameter10, md=12,lg=4)
                         ],
                     align="top",
                     ),
@@ -410,6 +415,12 @@ simulieren = dbc.Container(
                         dbc.Col(button, md=4)
                         ],
                     align='center'
+                    ),
+                    dbc.Row(
+                        [
+                        dbc.Col(ergebnis7),
+                        ],
+                    align='top'
                     ),
                     ],
                     fluid=True,
@@ -434,7 +445,8 @@ app.layout = dbc.Container(
         ),
         html.Div(id="tab-content", className="p-4"),
         dcc.Store(id='color_graph'),
-        dcc.Store(id='simhp')
+        dcc.Store(id='simhp'),
+        dcc.Store(id='simresults')
     ],fluid=True
 )
 
@@ -720,14 +732,14 @@ def showsimhp(simhp):
     return(pd.DataFrame.from_dict(simhp).to_markdown())
 
 @app.callback(
-    Output('sim_hp','value'),
+    Output('simresults','value'),
     Input('startsim', 'n_clicks'),
     State('simhp', 'value')
 )
 def cleardata(click,para):
     para_dict=para
     para=pd.DataFrame.from_dict(para)
-    results_timeseries=pd.DataFrame()
+    results_summary=pd.DataFrame()
     
     for simulation in para.index:
         eff_tww=[0.3,0.45,0.6,0.775][nutzungsgrad_tww.index(para.iloc[simulation,4])]
@@ -741,13 +753,19 @@ def cleardata(click,para):
                 else:
                     path=path+(str(para_dict[element][simulation]))+'_'
         path=path[:-1]+'.csv'
-        print(path)
         if exists(path):
-            results_timeseries=pd.concat([results_timeseries,pd.read_csv(path)])
+            results_summary=pd.concat([results_summary,pd.read_csv(path)])
         else:
-            results_timeseries=pd.concat([results_timeseries,simulate(para.iloc[simulation,0],para.iloc[simulation,1],para.iloc[simulation,2],para.iloc[simulation,3],eff_tww,para.iloc[simulation,5],para.iloc[simulation,6],para.iloc[simulation,7],para.iloc[simulation,8])])
-        print(results_timeseries.head(20))
-    return('TEXT')
+            results_summary=pd.concat([results_summary,simulate(para.iloc[simulation,0],para.iloc[simulation,1],para.iloc[simulation,2],para.iloc[simulation,3],eff_tww,para.iloc[simulation,5],para.iloc[simulation,6],para.iloc[simulation,7],para.iloc[simulation,8])])
+    return(results_summary.to_dict(orient='list'))
+
+@app.callback(
+    Output('economics','figure'),
+    Input('simresults','value')
+)
+def calceconomics(results_summary):
+    results_summary=pd.DataFrame.from_dict(results_summary)
+    return px.line(results_summary, x='E_bat', y='Autarkiegrad', color='WP-Name', hover_data=['WP-Hersteller','SJAZ'])
 
 @app.callback(
     Output("tab-content", "children"),
