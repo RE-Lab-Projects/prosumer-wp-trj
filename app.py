@@ -1,4 +1,5 @@
 # Imports
+from genericpath import exists
 from dash import Dash, html, dcc, Input, Output, State
 import dash_bootstrap_components as dbc
 import pandas as pd
@@ -392,8 +393,8 @@ simulieren = dbc.Container(
                     [
                     dbc.Row(
                         [
-                        dbc.Col(parameter9, md=6),
-                        dbc.Col(parameter10, md=6)
+                        dbc.Col(parameter9, md=8),
+                        dbc.Col(parameter10, md=4)
                         ],
                     align="top",
                     ),
@@ -724,11 +725,28 @@ def showsimhp(simhp):
     State('simhp', 'value')
 )
 def cleardata(click,para):
+    para_dict=para
     para=pd.DataFrame.from_dict(para)
+    results_timeseries=pd.DataFrame()
+    
     for simulation in para.index:
         eff_tww=[0.3,0.45,0.6,0.775][nutzungsgrad_tww.index(para.iloc[simulation,4])]
-        p_th_calc=simulate(para.iloc[simulation,0],para.iloc[simulation,1],para.iloc[simulation,2],para.iloc[simulation,3],eff_tww,para.iloc[simulation,5],para.iloc[simulation,6],para.iloc[simulation,7],para.iloc[simulation,8])
-        print(statistics.mean(p_th_calc)*8.76)
+        path='src/simulation_data/simulations/'
+        for element in para_dict:
+            if element=='Nutzungsgrad_TWW':
+                path=path+str(eff_tww)+'_'
+            else:
+                if element=='models':
+                    path=path+(para_dict[element][simulation].replace('/',''))+'_'
+                else:
+                    path=path+(str(para_dict[element][simulation]))+'_'
+        path=path[:-1]+'.csv'
+        print(path)
+        if exists(path):
+            results_timeseries=pd.concat([results_timeseries,pd.read_csv(path)])
+        else:
+            results_timeseries=pd.concat([results_timeseries,simulate(para.iloc[simulation,0],para.iloc[simulation,1],para.iloc[simulation,2],para.iloc[simulation,3],eff_tww,para.iloc[simulation,5],para.iloc[simulation,6],para.iloc[simulation,7],para.iloc[simulation,8])])
+        print(results_timeseries.head(20))
     return('TEXT')
 
 @app.callback(
