@@ -11,9 +11,8 @@ def simulate(standort, E_gas, T_vorlauf, n_Personen, eff_tww, Baujahr, wp_model,
     photovoltaic = pd.read_csv('src/simulation_data/pv/pv_' + str(standort)+'_a_2015_1min.csv', header=0, index_col=0)
     photovoltaic=photovoltaic*pv_kwp
     P_el_hh=pd.read_csv('src/simulation_data/electrical_load/existing_house.csv')
-    P_tww_load_swap=pd.read_csv('src/simulation_data/electrical_load/loads_1_a_2015_1min.csv')
-    #ToDo: read csv tww load profile
-
+    P_tww_load=pd.read_csv('src/simulation_data/dhw_load/dhw_'+str(n_Personen)+'.csv',index_col=0)
+    P_tww_load.index=weather.index
     #calc loads 
     eff_heiz=0.9                #average from DIN EN 12831 Tabelle 38
 
@@ -31,6 +30,7 @@ def simulate(standort, E_gas, T_vorlauf, n_Personen, eff_tww, Baujahr, wp_model,
         gtz=TRJ.iloc[standort-1,10]
     E_TWW=(14.9*30*n_Personen)/eff_tww
     E_Heiz=(E_gas-E_TWW)* eff_heiz * 1000
+    P_tww_load['load [W]']=P_tww_load['load [W]']+((E_TWW)-((P_tww_load.mean()*8.76)[1]))/8.76 #calibrate to calculated consumption
     #define simulation parameters
     HeatPump = hpl.HeatPump(hpl.get_parameters(wp_model))
     group_id=HeatPump.group_id
@@ -86,7 +86,7 @@ def simulate(standort, E_gas, T_vorlauf, n_Personen, eff_tww, Baujahr, wp_model,
             P_load_h_th=((20-temp)*E_Heiz/(gtz*24))
         else:
             P_load_h_th=0
-        P_load_tww_th = P_tww_load_swap.at[t,'SFH-new_P_th_tww']
+        P_load_tww_th = P_tww_load.at[t,'load [W]']
         T_vl,T_rl = HS.calc_heating_dist_temp(weather.at[t, 'temperature 24h [degC]'])
         T_sp_h_set = T_vl
         T_hp_brine = HS.calc_brine_temp(weather.at[t, 'temperature 24h [degC]'])
@@ -138,7 +138,7 @@ def simulate(standort, E_gas, T_vorlauf, n_Personen, eff_tww, Baujahr, wp_model,
             HP_h = HeatPump.simulate(t_in_primary=T_hp_in,
                                         t_in_secondary=T_sp_h,
                                         t_amb=T_amb_24h,
-                                        p_th_min=P_load_h_th)
+                                        p_th_min=P_load_h_th*1.5)
 
             P_hp_h_th = HP_h['P_th']
             P_hp_h_el = HP_h['P_el']
