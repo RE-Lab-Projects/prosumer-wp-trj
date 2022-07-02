@@ -273,6 +273,39 @@ parameter10= dbc.Card(dbc.CardBody(
             html.Div('Smartgrid checkbox.')
             ]),body=True)
 
+parameter11 = dbc.Card([html.Div(
+            [
+                html.P(
+                    [
+                        "Ökonomische Parameter zur Bestimmung der ",
+                        html.Span(
+                            "bilanziellen Stromkosten",
+                            id="tooltip-stromkosten",
+                            style={"textDecoration": "underline", "cursor": "pointer"},
+                        ),
+                        ".",
+                    ]
+                ),
+                dbc.Tooltip(
+                    "Summe aus Strombezugskosten für das gesamte Gebäude abzüglich "
+                    "der Einspeisevergütung.",
+                    target="tooltip-stromkosten",
+                ),
+            ]
+            ),
+            html.Div("Strombezugskosten in Ct/kWh: "),
+            dcc.Slider(28, 40, 1,
+               value=35,
+               id='sim_strombezugskosten'
+            ),
+            html.Div("Einspeisevergütung in Ct/kWh: "),
+            dcc.Slider(0, 12, 0.5,
+               value=6,
+               marks= {0: '0',1: '1',2: '2',3: '3',4: '4',5: '5',6: '6',7: '7', 8: '8',9: '9',10: '10',11: '11',12: '12',},
+               id='sim_einspeisevergütung'
+            ),
+            ],body=True)
+
 button = dbc.Card(dbc.CardBody(
     [
         html.Button('Start Simulation with choosen Data',id='startsim', n_clicks=0),
@@ -416,6 +449,12 @@ simulieren = dbc.Container(
                         ],
                     align='center'
                     ),
+                    dbc.Row(
+                        [
+                        dbc.Col(parameter11,md=8),
+                        ],
+                    align="middle",
+                    ), 
                     dbc.Row(
                         [
                         dbc.Col(ergebnis7),
@@ -696,8 +735,9 @@ def standorttoregion(standort):
     Input('eff_tww','value'),
 )
 def clickbutton(sim_region,wärmebedarf,t_heiz,baujahr,personen,eff_tww):
-    hp,Heizlast=fitting_hp(wärmebedarf,region.index(sim_region)+1,t_heiz,baujahr,personen,[0.3,0.45,0.6,0.775][nutzungsgrad_tww.index(eff_tww)])
-    fig = px.bar(hp, x='Model',y='COP', color='WP-Kategorie')
+    hp,Heizlast=fitting_hp(wärmebedarf,region.index(sim_region)+1,t_heiz,baujahr,personen,[0.4,0.6,0.7,0.85][nutzungsgrad_tww.index(eff_tww)])
+    fig = px.bar(hp, x='Model',y='COP', color='WP-Kategorie', hover_data=hp.columns)
+    print(Heizlast)
     return fig
 
 @app.callback(
@@ -742,7 +782,7 @@ def cleardata(click,para):
     results_summary=pd.DataFrame()
     
     for simulation in para.index:
-        eff_tww=[0.3,0.45,0.6,0.775][nutzungsgrad_tww.index(para.iloc[simulation,4])]
+        eff_tww=[0.4,0.6,0.7,0.85][nutzungsgrad_tww.index(para.iloc[simulation,4])]
         path='src/simulation_data/simulations/'
         for element in para_dict:
             if element=='Nutzungsgrad_TWW':
@@ -761,11 +801,14 @@ def cleardata(click,para):
 
 @app.callback(
     Output('economics','figure'),
-    Input('simresults','value')
+    Input('simresults','value'),
+    Input('sim_strombezugskosten', 'value'),
+    Input('sim_einspeisevergütung','value')
 )
-def calceconomics(results_summary):
+def calceconomics(results_summary,strombezugskosten,einspeisevergütung):
     results_summary=pd.DataFrame.from_dict(results_summary)
-    return px.line(results_summary, x='E_bat', y='Autarkiegrad', color='WP-Name', hover_data=['WP-Hersteller','SJAZ'])
+    results_summary['bilanzielle Stromkosten'] = results_summary['E_gs'].values * strombezugskosten/100 - results_summary['E_gf'].values * einspeisevergütung/100
+    return px.line(results_summary, x='E_bat', y='bilanzielle Stromkosten', color='WP-Name', hover_data=results_summary.columns)
 
 @app.callback(
     Output("tab-content", "children"),
