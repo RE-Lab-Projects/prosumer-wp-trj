@@ -249,10 +249,10 @@ parameter9 = dbc.Card(dbc.CardBody(
                 id='sim_region',
             ),
             html.Div('Gebäudeinformationen: '),
-            dcc.Input(id='wärmebedarf',type='number',placeholder='Wärmebedarf pro Jahr in kWh'),
-            dcc.Input(id='t_heiz',type='number',placeholder='Vorlauftemperatur in °C',),
-            dcc.Input(id='baujahr',type='number',placeholder='Baujahr',),
-            dcc.Input(id='personen',type='number',placeholder='Personenanzahl',),
+            dcc.Input(id='wärmebedarf',type='number',placeholder='Gasbedarf pro Jahr in kWh', step=1000),
+            dcc.Input(id='t_heiz',type='number',placeholder='Vorlauftemperatur in °C',min=25, max=70,),
+            dcc.Input(id='baujahr',type='number',placeholder='Baujahr',min=1980, max=2030,),
+            dcc.Input(id='personen',type='number',placeholder='Personenanzahl',max=200),
             dcc.Dropdown(nutzungsgrad_tww,
             id='eff_tww',placeholder='Art der Trinkwassererwärmung'),
             html.Br(),
@@ -279,7 +279,7 @@ parameter11 = dbc.Card(dbc.CardBody(
             
             dcc.Dropdown(wp_all['Model'].unique(),placeholder='Type here to search', id='search_hp'),
             html.Br(),
-            html.Button('Add Heatpump for Simulation',id='add_hp', n_clicks=0),
+            html.Button('Zum Simulationsframe hinzufügen',id='add_hp', n_clicks=0),
         
             ]),body=True)
 
