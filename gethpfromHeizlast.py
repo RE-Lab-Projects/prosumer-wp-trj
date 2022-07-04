@@ -34,4 +34,4 @@ def fitting_hp(energieverbrauch, standort,Vorlauftemperatur,Baujahr,Personen, ef
     Heizlast = (energieverbrauch* eff_heiz-Q_TWW) * 1000 / b        # DIN/TS 12831-1:2020-04 Formel 49
     Heizbedarf=Heizlast+Q_TWW                                       # Aufschlag TWW (500h im Jahr (1.5h am Tag))
     hp=hp.loc[(hp['Standort']==standort)& (hp['Vorlauftemperatur']==Vorlauftemperatur)&(hp['Normheizlast']>=Heizbedarf)&(hp['Normheizlast']<=Heizbedarf*1.25)]
-    return hp.sort_values('Normheizlast', ascending=False), Heizbedarf
+    return hp.sort_values('Normheizlast', ascending=False), Heizbedarf, weather.iloc[standort-1,9]

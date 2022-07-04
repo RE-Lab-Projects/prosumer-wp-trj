@@ -5,8 +5,6 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.express as px
 from hplib import hplib as hpl
-import plotly.graph_objects as go
-import statistics
 from PLZtoWeatherRegion import getregion
 from gethpfromHeizlast import fitting_hp
 from simulate import simulate
@@ -27,6 +25,8 @@ server = app.server
 # Prepare data
 df = pd.read_pickle('results_summary.pkl')
 heatpumps=hpl.load_database()
+wp_all=hpl.load_all_heat_pumps()
+same_Built=hpl.Same_Built()
 heatpumps=heatpumps[['Manufacturer', 'Model', 'Date', 'SPL indoor [dBA]', 'SPL outdoor [dBA]', 'PSB [W]', 'P_th_h_ref [W]','MAPE_P_el', 'MAPE_COP', 'MAPE_P_th',
        'P_th_c_ref [W]', 'MAPE_P_el_cooling', 'MAPE_EER', 'MAPE_Pdc']]
 region=['Nordseeküste','Ostseeküste','Nordwestdeutsches Tiefland','Nordostdeutsches Tiefland','Niederrheinisch-westfälische Bucht und Emsland','Nördliche und westliche Mittelgebirge, Randgebiete',
@@ -249,16 +249,17 @@ parameter9 = dbc.Card(dbc.CardBody(
                 id='sim_region',
             ),
             html.Div('Gebäudeinformationen: '),
-            dcc.Input(id='wärmebedarf',value=15000,type='number',placeholder='Wärmebedarf pro Jahr in kWh'),
-            dcc.Input(id='t_heiz',value=35,type='number',placeholder='Vorlauftemperatur in °C',),
-            dcc.Input(id='baujahr',value=2000,type='number',placeholder='Baujahr',),
-            dcc.Input(id='personen',value=4,type='number',placeholder='Personenanzahl',),
-            dcc.Dropdown(nutzungsgrad_tww,value=nutzungsgrad_tww[0],
+            dcc.Input(id='wärmebedarf',type='number',placeholder='Wärmebedarf pro Jahr in kWh'),
+            dcc.Input(id='t_heiz',type='number',placeholder='Vorlauftemperatur in °C',),
+            dcc.Input(id='baujahr',type='number',placeholder='Baujahr',),
+            dcc.Input(id='personen',type='number',placeholder='Personenanzahl',),
+            dcc.Dropdown(nutzungsgrad_tww,
             id='eff_tww',placeholder='Art der Trinkwassererwärmung'),
             html.Br(),
+            dcc.Markdown(id='heizlast'),
             ]),body=True)
 
-parameter10= dbc.Card(dbc.CardBody(
+parameter10 = dbc.Card(dbc.CardBody(
             [
             html.H5('Technische Geräte', className="card-title"),
             html.Div('PV-Leistung in kWp: '),
@@ -269,11 +270,20 @@ parameter10= dbc.Card(dbc.CardBody(
                 'Süd',
                 id='sim_pv_ausrichtung',
             ),
-            html.Div('Batteriegröße in kWh??'),
-            html.Div('Smartgrid checkbox.')
             ]),body=True)
 
-parameter11 = dbc.Card([html.Div(
+parameter11 = dbc.Card(dbc.CardBody(
+            [
+            html.H5('...oder Wärmepumpe suchen', className="card-title"),
+            html.Div('Wärmepumpen-Modelname: '),
+            
+            dcc.Dropdown(wp_all['Model'].unique(),placeholder='Type here to search', id='search_hp'),
+            html.Br(),
+            html.Button('Add Heatpump for Simulation',id='add_hp', n_clicks=0),
+        
+            ]),body=True)
+
+parameter12 = dbc.Card([html.Div(
             [
                 html.P(
                     [
@@ -355,13 +365,16 @@ ergebnis3 = dbc.Card(dbc.CardBody(
             ),
             ]))
 
-ergebnis4 = dbc.Card([
+ergebnis4 = dbc.Card(
+            [
             dcc.Graph(
             id='graph3',
             ),
             ])
 
 ergebnis5 = dbc.Card(dbc.CardBody([
+    html.H5('Vorgeschlagene Wärmepumpen', className="card-title"),
+    html.Div('Auf einen Balken klicken, um sie dem Simulationsframe hinzuzufügen.'),
     dcc.Graph(
         id='wptochoose',
     )]))
@@ -438,7 +451,8 @@ simulieren = dbc.Container(
                     ),
                     dbc.Row(
                         [
-                        dbc.Col(ergebnis5),
+                        dbc.Col(ergebnis5,md=8),
+                        dbc.Col(parameter11, md=4),
                         ],
                     align='top'
                     ),
@@ -451,7 +465,7 @@ simulieren = dbc.Container(
                     ),
                     dbc.Row(
                         [
-                        dbc.Col(parameter11,md=8),
+                        dbc.Col(parameter12,md=8),
                         ],
                     align="middle",
                     ), 
@@ -483,9 +497,10 @@ app.layout = dbc.Container(
             active_tab="info",
         ),
         html.Div(id="tab-content", className="p-4"),
-        dcc.Store(id='color_graph'),
+        dcc.Store(id='color_graph'),     
         dcc.Store(id='simhp'),
-        dcc.Store(id='simresults')
+        dcc.Store(id='simresults'),
+        dcc.Store(data=0,id='clicks_add_hp')
     ],fluid=True
 )
 
@@ -727,6 +742,7 @@ def standorttoregion(standort):
 
 @app.callback(
     Output('wptochoose','figure'),
+    Output('heizlast','children'),
     Input('sim_region','value'),
     Input('wärmebedarf','value'),
     Input('t_heiz','value'),
@@ -735,13 +751,16 @@ def standorttoregion(standort):
     Input('eff_tww','value'),
 )
 def clickbutton(sim_region,wärmebedarf,t_heiz,baujahr,personen,eff_tww):
-    hp,Heizlast=fitting_hp(wärmebedarf,region.index(sim_region)+1,t_heiz,baujahr,personen,[0.4,0.6,0.7,0.85][nutzungsgrad_tww.index(eff_tww)])
+    hp,Heizlast, T_min=fitting_hp(wärmebedarf,region.index(sim_region)+1,t_heiz,baujahr,personen,[0.4,0.6,0.7,0.85][nutzungsgrad_tww.index(eff_tww)])
     fig = px.bar(hp, x='Model',y='COP', color='WP-Kategorie', hover_data=hp.columns)
-    print(Heizlast)
-    return fig
+    fig.layout.xaxis.update(showticklabels=False)
+    fig.update_layout(legend=dict(yanchor="top",y=0.99,xanchor="right",x=0.99,))
+    fig.update_layout(yaxis_title='Arbeitszahl im Arbeitspunkt (' + str(T_min)+'/'+str(t_heiz)+')',xaxis_title='Wärmepumpe (klicken für mehr Infos)',title_x=0)
+    return fig, 'Dies entspricht einer berechneten Wärmepumpe mit einer Leitstung von mindestens '+str(round(Heizlast))+' Watt'
 
 @app.callback(
     Output("simhp", "value"),
+    Output('clicks_add_hp','value'),
     Input("wptochoose", "clickData"),
     State('sim_region','value'),
     State('wärmebedarf','value'),
@@ -749,20 +768,31 @@ def clickbutton(sim_region,wärmebedarf,t_heiz,baujahr,personen,eff_tww):
     State('baujahr','value'),
     State('personen','value'),
     State('eff_tww','value'),
-    Input('sim_pv_kwp','value'),
-    Input('sim_pv_ausrichtung','value'),
-    State('simhp','value')
+    State('sim_pv_kwp','value'),
+    State('sim_pv_ausrichtung','value'),
+    State('simhp','value'),
+    Input("add_hp", "n_clicks"),
+    State('search_hp','value'),
+    State('clicks_add_hp','value'),
 )
-def simulatehp(heatpumps,sim_region,wärmebedarf,t_heiz,baujahr,personen,eff_tww,pv_kwp,pv_ausrichtung,df):
+def simulatehp(heatpumps,sim_region,wärmebedarf,t_heiz,baujahr,personen,eff_tww,pv_kwp,pv_ausrichtung,df,n_clicks,search_hp,n_clicks_before):
+    try:
+        if (n_clicks>n_clicks_before):
+            heatpump=same_Built.all_to_database(search_hp)
+            heatpumps=dict({'points': [{'x': heatpump}]})      
+    except:
+        if (n_clicks>0):
+            heatpump=same_Built.all_to_database(search_hp)
+            heatpumps=dict({'points': [{'x': heatpump}]})
     try:
         df=pd.DataFrame.from_dict(df)
-        if (len(df)>=4):
+        if (len(df)>=10):
             df=pd.DataFrame()
         simhp_value=pd.concat([df, pd.DataFrame({'Region':[region.index(sim_region)+1],'wärmebedarf':[wärmebedarf],'Vorlauf':[t_heiz],'personen':[personen],'Nutzungsgrad_TWW':[eff_tww],'baujahr':[baujahr],'models':[heatpumps['points'][0]['x']], 'kwp':[pv_kwp],'pv_ausrichtung':[pv_ausrichtung]})])
     except:
         simhp_value=pd.DataFrame({'Region':[region.index(sim_region)+1],'wärmebedarf':[wärmebedarf],'Vorlauf':[t_heiz],'personen':[personen],'Nutzungsgrad_TWW':[eff_tww],'baujahr':[baujahr],'models':[heatpumps['points'][0]['x']], 'kwp':[pv_kwp],'pv_ausrichtung':[pv_ausrichtung]})
 
-    return simhp_value.to_dict(orient='list')
+    return simhp_value.to_dict(orient='list'),n_clicks
 
 @app.callback(
     Output('sim_hp', 'children'),
@@ -808,7 +838,8 @@ def cleardata(click,para):
 def calceconomics(results_summary,strombezugskosten,einspeisevergütung):
     results_summary=pd.DataFrame.from_dict(results_summary)
     results_summary['bilanzielle Stromkosten'] = results_summary['E_gs'].values * strombezugskosten/100 - results_summary['E_gf'].values * einspeisevergütung/100
-    return px.line(results_summary, x='E_bat', y='bilanzielle Stromkosten', color='WP-Name', hover_data=results_summary.columns)
+    fig=px.line(results_summary, x='E_bat', y='bilanzielle Stromkosten', color='WP-Name', hover_data=results_summary.columns)
+    return fig
 
 @app.callback(
     Output("tab-content", "children"),
