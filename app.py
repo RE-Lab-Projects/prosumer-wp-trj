@@ -251,7 +251,7 @@ parameter9 = dbc.Card(dbc.CardBody(
             html.Div('Gebäudeinformationen: '),
             dcc.Input(id='wärmebedarf',type='number',placeholder='Gasbedarf pro Jahr in kWh', step=1000),
             dcc.Input(id='t_heiz',type='number',placeholder='Vorlauftemperatur in °C',min=25, max=70,),
-            dcc.Input(id='baujahr',type='number',placeholder='Baujahr',min=1980, max=2030,),
+            dcc.Input(id='baujahr',type='number',placeholder='Baujahr/Sanierungsstand',min=1980, max=2030,),
             dcc.Input(id='personen',type='number',placeholder='Personenanzahl',max=200),
             dcc.Dropdown(nutzungsgrad_tww,
             id='eff_tww',placeholder='Art der Trinkwassererwärmung'),
@@ -319,6 +319,10 @@ parameter12 = dbc.Card([html.Div(
 button = dbc.Card(dbc.CardBody(
     [
         html.Button('Start Simulation with choosen Data',id='startsim', n_clicks=0),
+        html.Br(),
+        html.Button('Delete all',id='delete_all', n_clicks=0),
+        html.Br(),
+        html.Button('Delete last',id='delete_last', n_clicks=0),
     ]))
 
 ergebnis1 = dbc.Card(dbc.CardBody(
@@ -755,7 +759,7 @@ def clickbutton(sim_region,wärmebedarf,t_heiz,baujahr,personen,eff_tww):
     fig = px.bar(hp, x='Model',y='COP', color='WP-Kategorie', hover_data=hp.columns)
     fig.layout.xaxis.update(showticklabels=False)
     fig.update_layout(legend=dict(yanchor="top",y=0.99,xanchor="right",x=0.99,))
-    fig.update_layout(yaxis_title='Arbeitszahl im Arbeitspunkt (' + str(T_min)+'/'+str(t_heiz)+')',xaxis_title='Wärmepumpe (klicken für mehr Infos)',title_x=0)
+    fig.update_layout(yaxis_title='Arbeitszahl im Arbeitspunkt (' + str(T_min)+'/'+str(t_heiz)+')',xaxis_title='Wärmepumpe (klicken um dem Simulationsframe hinzuzufügen)',title_x=0)
     return fig, 'Dies entspricht einer berechneten Wärmepumpe mit einer Leitstung von mindestens '+str(round(Heizlast))+' Watt'
 
 @app.callback(
@@ -776,21 +780,26 @@ def clickbutton(sim_region,wärmebedarf,t_heiz,baujahr,personen,eff_tww):
     State('clicks_add_hp','value'),
 )
 def simulatehp(heatpumps,sim_region,wärmebedarf,t_heiz,baujahr,personen,eff_tww,pv_kwp,pv_ausrichtung,df,n_clicks,search_hp,n_clicks_before):
-    try:
+    try: # for button click
         if (n_clicks>n_clicks_before):
             heatpump=same_Built.all_to_database(search_hp)
             heatpumps=dict({'points': [{'x': heatpump}]})      
-    except:
+    except: # if the first hp is on button click
         if (n_clicks>0):
             heatpump=same_Built.all_to_database(search_hp)
             heatpumps=dict({'points': [{'x': heatpump}]})
+    model=(heatpumps['points'][0]['x']).replace('/','')
+    if exists('src/simulation_data/simulations/'+str(region.index(sim_region)+1)+'_'+str(wärmebedarf)+'_'+str(t_heiz)+'_'+str(personen)+'_'+str([0.4,0.6,0.7,0.85][nutzungsgrad_tww.index(eff_tww)])+'_'+str(baujahr)+'_'+model+'_'+str(pv_kwp)+'_'+pv_ausrichtung+'.csv'):
+        sim='Ja'
+    else:
+        sim='Nein'
     try:
         df=pd.DataFrame.from_dict(df)
         if (len(df)>=10):
             df=pd.DataFrame()
-        simhp_value=pd.concat([df, pd.DataFrame({'Region':[region.index(sim_region)+1],'wärmebedarf':[wärmebedarf],'Vorlauf':[t_heiz],'personen':[personen],'Nutzungsgrad_TWW':[eff_tww],'baujahr':[baujahr],'models':[heatpumps['points'][0]['x']], 'kwp':[pv_kwp],'pv_ausrichtung':[pv_ausrichtung]})])
+        simhp_value=pd.concat([df, pd.DataFrame({'Region':[region.index(sim_region)+1],'Wärmebedarf':[wärmebedarf],'Vorlauf':[t_heiz],'Personen':[personen],'Nutzungsgrad_TWW':[eff_tww],'Baujahr':[baujahr],'Models':[heatpumps['points'][0]['x']], 'kWp':[pv_kwp],'PV-Ausrichtung':[pv_ausrichtung],'Bereits simuliert':[sim]})])
     except:
-        simhp_value=pd.DataFrame({'Region':[region.index(sim_region)+1],'wärmebedarf':[wärmebedarf],'Vorlauf':[t_heiz],'personen':[personen],'Nutzungsgrad_TWW':[eff_tww],'baujahr':[baujahr],'models':[heatpumps['points'][0]['x']], 'kwp':[pv_kwp],'pv_ausrichtung':[pv_ausrichtung]})
+        simhp_value=pd.DataFrame({'Region':[region.index(sim_region)+1],'Wärmebedarf':[wärmebedarf],'Vorlauf':[t_heiz],'Personen':[personen],'Nutzungsgrad_TWW':[eff_tww],'Baujahr':[baujahr],'Models':[heatpumps['points'][0]['x']], 'kWp':[pv_kwp],'PV-Ausrichtung':[pv_ausrichtung],'Bereits simuliert':[sim]})
 
     return simhp_value.to_dict(orient='list'),n_clicks
 
@@ -807,6 +816,7 @@ def showsimhp(simhp):
     State('simhp', 'value')
 )
 def cleardata(click,para):
+    del para['Bereits simuliert']
     para_dict=para
     para=pd.DataFrame.from_dict(para)
     results_summary=pd.DataFrame()
@@ -818,7 +828,7 @@ def cleardata(click,para):
             if element=='Nutzungsgrad_TWW':
                 path=path+str(eff_tww)+'_'
             else:
-                if element=='models':
+                if element=='Models':
                     path=path+(para_dict[element][simulation].replace('/',''))+'_'
                 else:
                     path=path+(str(para_dict[element][simulation]))+'_'
@@ -829,6 +839,15 @@ def cleardata(click,para):
             results_summary=pd.concat([results_summary,simulate(para.iloc[simulation,0],para.iloc[simulation,1],para.iloc[simulation,2],para.iloc[simulation,3],eff_tww,para.iloc[simulation,5],para.iloc[simulation,6],para.iloc[simulation,7],para.iloc[simulation,8])])
     return(results_summary.to_dict(orient='list'))
 
+"""@app.callback(
+    Output('simhp', 'value'),
+    Input('delete_last','n_clicks')
+    State('simhp', 'value')
+)
+def delete_last(clicks, simhp):
+    simhp=pd.DataFrame.from_dict(simhp)
+    return pd.DataFrame().to_dict(orient='list')"""
+
 @app.callback(
     Output('economics','figure'),
     Input('simresults','value'),
@@ -838,7 +857,7 @@ def cleardata(click,para):
 def calceconomics(results_summary,strombezugskosten,einspeisevergütung):
     results_summary=pd.DataFrame.from_dict(results_summary)
     results_summary['bilanzielle Stromkosten'] = results_summary['E_gs'].values * strombezugskosten/100 - results_summary['E_gf'].values * einspeisevergütung/100
-    fig=px.line(results_summary, x='E_bat', y='bilanzielle Stromkosten', color='WP-Name', hover_data=results_summary.columns)
+    fig=px.line(results_summary, x='E_bat', y='bilanzielle Stromkosten', color='WP-Name', hover_data=['WP-Laufzeit','WP-Typ'])
     return fig
 
 @app.callback(
