@@ -141,28 +141,15 @@ parameter2 = dbc.Card([html.Div(
             ]
             ),
             html.Div("Strombezugskosten in Ct/kWh: "),
-            dcc.Slider(28, 40, 1,
+            dcc.Slider(20, 50,
                value=35,
+               tooltip={"placement": "bottom", "always_visible": True},
                id='strombezugskosten'
             ),
             html.Div("Einspeisevergütung in Ct/kWh: "),
-            dcc.Slider(0, 12, 0.5,
-               value=6,
-               marks= {
-                    0: '0',
-                    1: '1',
-                    2: '2',
-                    3: '3',   
-                    4: '4',
-                    5: '5',
-                    6: '6',
-                    7: '7', 
-                    8: '8',
-                    9: '9',
-                    10: '10',
-                    11: '11',
-                    12: '12',
-               },
+            dcc.Slider(0, 20,
+               value=8.2,
+               tooltip={"placement": "bottom", "always_visible": True},
                id='einspeisevergütung'
             ),
             ],body=True)
@@ -494,8 +481,7 @@ app.layout = dbc.Container(
             [
                 dbc.Tab(label="Info", tab_id="info"),
                 dbc.Tab(label="Stromkosten", tab_id="ergebnisse"),
-                dbc.Tab(label="eigene Auswertung", tab_id="auswertungsergebnisse"),
-                dbc.Tab(label="eigene Simulation", tab_id="simulieren"),
+                dbc.Tab(label="eigene Auswertung", tab_id="auswertungsergebnisse")
             ],
             id="tabs",
             active_tab="info",
